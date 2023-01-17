@@ -1,36 +1,42 @@
 import random
 from scipy.spatial import Delaunay
-import numpy
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageColor
 
-__max_probability__ = 2
-__system_count__ = 25
+system_count = 2500
+grid_size = 100
 
-im = Image.open('Distribution.png')  # Can be many different formats.
-pixH = im.convert('HSV').load()
-imRGB = im.convert('RGB')
-pix = imRGB.load()
+input_image = Image.open("Distribution.png")
+input_array = np.array(input_image) / 255
+#real_image = Image.new("RGB", input_image.size)
+#output_image = Image.new("RGB", input_image.size)
 
-probability = []
-for x in range(0, im.size[0]):
-    for y in range(0, im.size[1]):
-        p = (255 - pixH[x, y][2])
-        for i in range(0, int(p)):
-            probability.append([x, y])
+points = []
 
-k = random.choices(probability, k=int(__system_count__))
+### GENERATE STAR LOCATIONS 
 
-tri = Delaunay(k)
-points = numpy.array(k)
+for y in range(input_array.shape[0]):
+    for x in range(input_array.shape[1]): 
 
-text_file = open("lanes.txt", "w")
-n = text_file.write(str(points[tri.simplices]).strip())
-text_file.close()
+        brightness = input_array[y, x] ** 2
+        #bcolor = int(brightness * 255)
+        #real_image.putpixel((x,y), (bcolor,bcolor,bcolor,bcolor))
 
-# for x in range(0, im.size[0]):
-#     for y in range(0, im.size[1]):
-#         if not k.__contains__((x, y)):
-#             pix[x, y] = (255, 255, 255)
-#         else:
-#             pix[x, y] = (0, 0, 0)
-# imRGB.save('Distribution2.png')
+        rand = np.random.random()
+        
+        if rand < brightness:
+            #print(brightness, rand, y, x)
+            #output_image.putpixel((x,y), (255,255,255,255))
+            points.append([x, y])
+
+print(f"{len(points)} Systems Generated; Picking {system_count}")
+
+p = random.choices(points, k=system_count)
+
+# Display Raw Star positions
+
+# for point in p:
+#     output_image.putpixel(point, (255,255,255,255))
+
+# output_image.show()
+
