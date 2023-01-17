@@ -3,6 +3,7 @@ from scipy.spatial import Delaunay
 import numpy as np
 from PIL import Image, ImageColor
 from KNN import Index
+from IntersectCalculator import convIntersect
 import cv2
 
 system_count = 2500
@@ -33,12 +34,41 @@ index.set_points(stars)
 ### DETERMINE HYPERLANES
 
 hyperlanes = []
-
+connCount = {}
 for star in stars:
-    rand = int(np.random.random() * 5 + 1)
-    connections = np.random.choice(index.indexOf(star, 6)[1:], size=rand, replace=False)
-    for c in connections:
-        hyperlanes.append([star, stars[c]])
+    #rand = int(np.random.random() * 5 + 1)
+    connections = index.indexOf(star, 20)[1:]
+    laneCount = 0
+
+    badLanes = []
+
+    # np.random.shuffle(connections)
+    for i in range(len(connections)):
+        # if connCount.get(tuple(star), 0) >= rand:
+        #     break
+        c = connections[i]
+
+        intersections = 0
+        j = 0
+        while intersections < 2 and j < len(hyperlanes):
+            if convIntersect(star, stars[c], hyperlanes[j][0], hyperlanes[j][1]):
+                intersections += 1
+                #print("INTERSECT: ", star, stars[c], hyperlanes[j])
+                badLanes.append(hyperlanes[j])
+            j += 1
+
+        if intersections < 2:            
+            hyperlanes.append([star, stars[c]])       
+
+            for sys in hyperlanes[-1]:
+                if connCount.get(tuple(sys)):
+                    connCount[tuple(sys)] += 1
+                else:
+                    connCount[tuple(sys)] = 1
+    if connCount.get(tuple(star), 0) == 0:
+        print(star, stars[c], connCount.get(tuple(star),0))
+        print(badLanes)
+print(f"Generated {sum(connCount.values())} connections")
 
 ### GENERATE OUTPUT IMAGE
 output_image = np.array(Image.new("RGB", tuple(np.array(input_image.size) * 10)))
