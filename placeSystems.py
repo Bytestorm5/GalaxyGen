@@ -6,6 +6,8 @@ from KNN import Index
 from IntersectCalculator import convIntersect
 import cv2
 
+import matplotlib.pyplot as plt
+
 system_count = 2500
 grid_size = 100
 
@@ -30,45 +32,65 @@ for y in range(input_array.shape[0]):
 print(f"{len(points)} Systems Generated; Picking {system_count}")
 
 stars = random.choices(points, k=system_count)
-index.set_points(stars)
+delaunay = Delaunay(stars)
+#index.set_points(stars)
 ### DETERMINE HYPERLANES
 
-hyperlanes = []
-connCount = {}
-for star in stars:
-    #rand = int(np.random.random() * 5 + 1)
-    connections = index.indexOf(star, 20)[1:]
-    laneCount = 0
 
-    badLanes = []
+# https://stackoverflow.com/a/23700182
+def find_neighbors(pindex, triang):
+    return triang.vertex_neighbor_vertices[1][triang.vertex_neighbor_vertices[0][pindex]:triang.vertex_neighbor_vertices[0][pindex+1]]
+
+hyperlanes = []
+
+length_metrics = []
+
+#conns = {}
+for s in range(len(stars)):
+    star = stars[s]
+    brightness = np.linalg.norm(input_array[star[1], star[0]]) ** 2
+    rand = int(((brightness + random.random()) / 2) * 5) + 1 
+
+    connections = find_neighbors(s, delaunay)
+    #connections = sorted(connections, key=lambda x: np.linalg.norm(np.subtract(star,stars[x])), reverse=True)
+    random.shuffle(connections)
+    laneCount = 0
 
     # np.random.shuffle(connections)
     for i in range(len(connections)):
-        # if connCount.get(tuple(star), 0) >= rand:
-        #     break
+        if laneCount >= rand:
+            break
         c = connections[i]
+        length_metrics.append(np.linalg.norm(np.subtract(star,stars[c])))
 
-        intersections = 0
-        j = 0
-        while intersections < 2 and j < len(hyperlanes):
-            if convIntersect(star, stars[c], hyperlanes[j][0], hyperlanes[j][1]):
-                intersections += 1
-                #print("INTERSECT: ", star, stars[c], hyperlanes[j])
-                badLanes.append(hyperlanes[j])
-            j += 1
+        midpoint = np.add(star, stars[c], dtype=int)//2
+        mid_brightness = np.linalg.norm(input_array[midpoint[1], midpoint[0]]) ** 2
+        if mid_brightness < 0.05:
+            continue
 
-        if intersections < 2:            
-            hyperlanes.append([star, stars[c]])       
+        #if length_metrics[-1] < 75:
+        hyperlanes.append([star, stars[c]])
+        laneCount += 1
 
-            for sys in hyperlanes[-1]:
-                if connCount.get(tuple(sys)):
-                    connCount[tuple(sys)] += 1
-                else:
-                    connCount[tuple(sys)] = 1
-    if connCount.get(tuple(star), 0) == 0:
-        print(star, stars[c], connCount.get(tuple(star),0))
-        print(badLanes)
-print(f"Generated {sum(connCount.values())} connections")
+    if laneCount == 0:  
+        try:      
+            hyperlanes.append([star, stars[random.choice(connections)]])
+        except IndexError:
+            closest_stars = sorted(stars, key=lambda x: np.linalg.norm(np.subtract(star,x)), reverse=False)
+            for s in closest_stars:
+                if s != star:
+                    closest_star = s
+                    break
+            hyperlanes.append([star, closest_star])
+
+print("Min ", min(length_metrics))
+print("Max ", max(length_metrics))
+print("Median ", np.median(length_metrics))
+print("Mean ", np.average(length_metrics))
+print("Var ", np.var(length_metrics))
+
+plt.hist(length_metrics)
+plt.show()
 
 ### GENERATE OUTPUT IMAGE
 output_image = np.array(Image.new("RGB", tuple(np.array(input_image.size) * 10)))
