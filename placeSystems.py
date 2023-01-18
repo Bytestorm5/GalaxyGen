@@ -2,8 +2,6 @@ import random
 from scipy.spatial import Delaunay
 import numpy as np
 from PIL import Image, ImageColor
-from KNN import Index
-from IntersectCalculator import convIntersect
 import cv2
 
 system_count = 2500
@@ -15,7 +13,6 @@ input_array = np.array(input_image) / 255
 print(f"OUTPUT IMAGE SIZE: {np.array(input_image.size) * 16}")
 
 points = []
-index = Index()
 ### GENERATE STAR LOCATIONS 
 
 for y in range(input_array.shape[0]):
@@ -30,7 +27,7 @@ print(f"{len(points)} Systems Generated; Picking {system_count}")
 
 stars = random.choices(points, k=system_count)
 delaunay = Delaunay(stars)
-#index.set_points(stars)
+
 ### DETERMINE HYPERLANES
 
 
