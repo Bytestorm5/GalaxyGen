@@ -1,0 +1,87 @@
+<html>
+    <head>
+            
+
+        <script type="text/javascript">
+            var myImg;
+            var rgba;
+            var width;
+            function FindPosition(oElement)
+            {
+                if(typeof( oElement.offsetParent ) != "undefined")
+                {
+                    for(var posX = 0, posY = 0; oElement; oElement = oElement.offsetParent)
+                    {
+                        posX += oElement.offsetLeft;
+                        posY += oElement.offsetTop;
+                    }
+                    return [ posX, posY ];
+                }
+                else
+                {
+                    return [ oElement.x, oElement.y ];
+                }
+            }
+
+            const getColorIndicesForCoord = (x, y, width) => {
+                const red = y * (width * 4) + x * 4;
+                return [red, red + 1, red + 2, red + 3];
+            };
+
+
+            function GetCoordinates(e)
+            {
+                if (e.which != 1) {
+                    return
+                }
+                var PosX = 0;
+                var PosY = 0;
+                var ImgPos;
+                ImgPos = FindPosition(myImg);
+                if (!e) var e = window.event;
+                if (e.pageX || e.pageY)
+                {
+                    PosX = e.pageX;
+                    PosY = e.pageY;
+                }
+                else if (e.clientX || e.clientY)
+                {
+                    PosX = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                    PosY = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+                }
+                PosX = PosX - ImgPos[0];
+                PosY = PosY - ImgPos[1];
+                //document.getElementById("x").innerHTML = PosX;
+                //document.getElementById("y").innerHTML = PosY;
+                console.log(`X: ${PosX} | Y: ${PosY}`)
+                
+                var [redIndex, greenIndex, blueIndex, alphaIndex] = getColorIndicesForCoord();
+                console.log(`R: ${rgba[redIndex]} | G: ${rgba[greenIndex]} | B: ${rgba[blueIndex]}`)
+            }
+            
+            addEventListener('DOMContentLoaded', (event) => {
+                myImg = document.getElementById("myImgId");
+                myImg.onmousedown = GetCoordinates;
+
+                const img = document.querySelector('#mask');
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                ctx.drawImage(img, 0, 0);
+                
+                rgba = ctx.getImageData(
+                    0, 0, img.width, img.height
+                ).data;
+                width = img.width
+                //canvas.hidden = true;
+            });
+        </script>
+    </head>
+    <body>
+        <img id="myImgId" src="output.png" style="margin: 0 auto;">
+        <img id="mask" src="output_mask.png" style="margin: 0 auto;" hidden>
+    </body>
+</html>

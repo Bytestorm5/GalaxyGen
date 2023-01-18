@@ -77,6 +77,10 @@ for s in range(len(stars)):
                     break
             hyperlanes.append([s, stars.index(closest_star)])
 
+### Generate resources
+
+
+
 ### Output to JS
 
 output_json = {}
