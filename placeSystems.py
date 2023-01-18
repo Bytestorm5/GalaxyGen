@@ -6,16 +6,13 @@ from KNN import Index
 from IntersectCalculator import convIntersect
 import cv2
 
-import matplotlib.pyplot as plt
-
 system_count = 2500
-grid_size = 100
 
 input_image = Image.open("Distribution.png")
 input_array = np.array(input_image) / 255
 #real_image = Image.new("RGB", input_image.size)
 
-print(f"OUTPUT IMAGE SIZE: {np.array(input_image.size) * 10}")
+print(f"OUTPUT IMAGE SIZE: {np.array(input_image.size) * 16}")
 
 points = []
 index = Index()
@@ -83,21 +80,13 @@ for s in range(len(stars)):
                     break
             hyperlanes.append([star, closest_star])
 
-print("Min ", min(length_metrics))
-print("Max ", max(length_metrics))
-print("Median ", np.median(length_metrics))
-print("Mean ", np.average(length_metrics))
-print("Var ", np.var(length_metrics))
-
-plt.hist(length_metrics)
-plt.show()
 
 ### GENERATE OUTPUT IMAGE
-output_image = np.array(Image.new("RGB", tuple(np.array(input_image.size) * 10)))
+output_image = np.array(Image.new("RGB", tuple(np.array(input_image.size) * 16)))
 output_image = output_image[:, :, ::-1].copy() 
 
 def pixel_convesion(in_coord, center = True):
-    return [(i * 10) + 5 for i in in_coord]
+    return [(i * 16) + 8 for i in in_coord]
 
 
 ## Draw Hyperlanes
@@ -106,10 +95,10 @@ for h in hyperlanes:
     start = pixel_convesion(h[0])
     end = pixel_convesion(h[1])
     
-    output_image = cv2.line(output_image, start, end, GRAY, 2)
+    output_image = cv2.line(output_image, start, end, GRAY, 2, cv2.LINE_AA)
 ## Draw Stars
 for p in stars:
-    output_image = cv2.circle(output_image, pixel_convesion(p), 3, (255, 255, 255), -1)
+    output_image = cv2.circle(output_image, pixel_convesion(p), 5, (255, 255, 255), -1, cv2.LINE_AA)
 
 #output_image = cv2.GaussianBlur(output_image, (3,3),0)
 #cv2.imshow("Final Result",output_image)
