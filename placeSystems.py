@@ -1,8 +1,8 @@
 import random
 from scipy.spatial import Delaunay
 import numpy as np
-from PIL import Image, ImageColor
-import cv2
+from PIL import Image
+import json, codecs
 
 system_count = 2500
 
@@ -63,41 +63,29 @@ for s in range(len(stars)):
             continue
 
         #if length_metrics[-1] < 75:
-        hyperlanes.append([star, stars[c]])
+        hyperlanes.append([s, int(c)])
         laneCount += 1
 
     if laneCount == 0:  
         try:      
-            hyperlanes.append([star, stars[random.choice(connections)]])
+            hyperlanes.append([s, int(random.choice(connections))])
         except IndexError:
             closest_stars = sorted(stars, key=lambda x: np.linalg.norm(np.subtract(star,x)), reverse=False)
-            for s in closest_stars:
-                if s != star:
-                    closest_star = s
+            for st in closest_stars:
+                if st != star:
+                    closest_star = st
                     break
-            hyperlanes.append([star, closest_star])
+            hyperlanes.append([s, stars.index(closest_star)])
 
+### Output to JS
 
-### GENERATE OUTPUT IMAGE
-output_image = np.array(Image.new("RGB", tuple(np.array(input_image.size) * 16)))
-output_image = output_image[:, :, ::-1].copy() 
+output_json = {}
+output_json['width'] = input_image.size[0]
+output_json['height'] = input_image.size[1]
+output_json['stars'] = list(stars)
+output_json['hyperlanes'] = list(hyperlanes)
 
-def pixel_convesion(in_coord, center = True):
-    return [(i * 16) + 8 for i in in_coord]
-
-
-## Draw Hyperlanes
-GRAY = (104, 104, 104)
-for h in hyperlanes:
-    start = pixel_convesion(h[0])
-    end = pixel_convesion(h[1])
-    
-    output_image = cv2.line(output_image, start, end, GRAY, 2, cv2.LINE_AA)
-## Draw Stars
-for p in stars:
-    output_image = cv2.circle(output_image, pixel_convesion(p), 5, (255, 255, 255), -1, cv2.LINE_AA)
-
-#output_image = cv2.GaussianBlur(output_image, (3,3),0)
-#cv2.imshow("Final Result",output_image)
-cv2.imwrite("output.png", output_image)
-#cv2.waitKey(0)
+json.dump(output_json, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
+          separators=(',', ':'), 
+          sort_keys=True, 
+          indent=4)
