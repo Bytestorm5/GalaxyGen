@@ -6,6 +6,10 @@
             var myImg;
             var rgba;
             var width;
+
+            var edit_mode = 0;
+            var selection_text;
+
             function FindPosition(oElement)
             {
                 if(typeof( oElement.offsetParent ) != "undefined")
@@ -29,7 +33,7 @@
             };
 
 
-            function GetCoordinates(e)
+            async function GetCoordinates(e)
             {
                 if (e.which != 1) {
                     return
@@ -54,21 +58,22 @@
                 //document.getElementById("x").innerHTML = PosX;
                 //document.getElementById("y").innerHTML = PosY;
                 console.log(`X: ${PosX} | Y: ${PosY}`)
-                
+                position_text.innerHTML = `X: ${PosX} | Y: ${PosY}`
                 //var [redIndex, greenIndex, blueIndex, alphaIndex] = getColorIndicesForCoord();
                 //console.log(`R: ${rgba[redIndex]} | G: ${rgba[greenIndex]} | B: ${rgba[blueIndex]}`)
-                get_mask(PosX, PosY)
+                selection_text.innerHTML = await get_mask(PosX, PosY)
+                console.log(await get_mask(PosX, PosY))
             }
             
-            function get_mask(x, y) {
+            async function get_mask(x, y) {
                 var requestOptions = {
                     method: 'GET',
                     redirect: 'follow'
                 };
 
                 //var raw;
-
-                fetch(`/api/getMask?x=${x}&y=${y}`, requestOptions)
+                
+                return await fetch(`/api/getMask?x=${x}&y=${y}`, requestOptions)
                 .then(response => response.text())
                 .then(result => {
                     console.log(result)
@@ -77,24 +82,96 @@
                         var out = raw[0] == 255 ?"Star " : "Lane ";                    
                         var id = raw[1]
                         id += raw[2] * 255
-                        out += `${id}`
-                        console.log(out)
+                        out += `${id}`                        
                         return out
                     }     
+                    else {
+                        return "Background"
+                    }
                 })
-                .catch(error => console.log('error', error));
-                       
-                return "Background"                
+                .catch(error => console.log('error', error));             
             }
+
+            
 
             addEventListener('DOMContentLoaded', (event) => {
                 myImg = document.getElementById("myImgId");
                 myImg.onmousedown = GetCoordinates;
+
+                position_text = document.getElementById("coord_viewer")
+                selection_text = document.getElementById("selected_item")
+
+                var link = document.getElementById('b_viewer');
+                link.onclick = (event) => {
+                    console.log("Viewer Mode")
+                    edit_mode = 0;
+                };
+
+                link = document.getElementById('b_mod_star');
+                link.onclick = (event) => {
+                    console.log("Star Modifier")
+                    edit_mode = 1;
+                };
+
+                link = document.getElementById('b_add_star');
+                link.onclick = (event) => {
+                    console.log("Add Star")
+                    edit_mode = 2;
+                };
+
+                link = document.getElementById('b_del_lane');
+                link.onclick = (event) => {
+                    console.log("Delete Lane")
+                    edit_mode = 3;
+                };
+
+                link = document.getElementById('b_add_lane');
+                link.onclick = (event) => {
+                    console.log("Add Lane")
+                    edit_mode = 4;
+                };
             });
         </script>
     </head>
-    <body>
-        <img id="myImgId" src="output.png" style="margin: 0 auto;">
-        <img id="mask" src="output_mask.png" style="margin: 0 auto;" hidden>
+    <style>
+        #toolbar a {
+            display: block;
+            background-color: rgba(255, 255, 255, 0.5); 
+            border: 2px solid gray;
+            border-radius: 25px;
+            margin: 7.5px;
+        }
+        #toolbar a:hover {
+            background-color: rgba(255, 255, 255, 0.75); 
+        }
+        #toolbar a:active {
+            background-color: rgba(255, 255, 255, 0.25); 
+        }
+    </style>
+    <body>        
+        <img id="myImgId" src="output.png" style="margin: 0 auto; z-index: 0;">
+        <div>
+            <div style="position: fixed; left: 1%; top: 1%; z-index: 3000; padding: 5px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.5); border: 2px solid aqua">
+                <p id="coord_viewer">X: 0, Y:0</p>
+                <p id="selected_item">No Object Selected</p>
+            </div>            
+            <div id="toolbar" style="position: fixed; left: 1%; top: 25%; z-index: 3000;">
+                <a id="b_viewer">
+                    <img style="width: 64px;" src="images\eye_icon.png">
+                </a>
+                <a id="b_mod_star">
+                    <img style="width: 64px;" src="images\select_star.png">
+                </a>
+                <a id="b_add_star">
+                    <img style="width: 64px;" src="images\add_star.png">
+                </a>
+                <a id="b_del_lane">
+                    <img style="width: 64px;" src="images\select_lane.png">
+                </a>
+                <a id="b_add_lane">
+                    <img style="width: 64px;" src="images\add_lane.png">
+                </a>
+            </div>            
+        </div>
     </body>
 </html>
