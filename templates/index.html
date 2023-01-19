@@ -1,0 +1,29 @@
+<html>
+    <style>
+        #main-content {
+            width: fit-content; 
+            margin: 0 auto; 
+            background-color: rgb(65, 65, 65); 
+            color: aliceblue; 
+            padding: 15px; 
+            border-radius: 15px; 
+            text-shadow: 2px;
+        }
+        #main-content a {
+            color:aqua;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px;
+        }
+    </style>
+    <body style="background-color: rgb(20, 20, 20);">
+        <div id="main-content">
+            <h1>GalaxyGen Director</h1>
+            <p>
+                <a href="{{url_for('view_systems')}}">View Galaxy</a><br><br>
+                <a href="{{url_for('view_resources')}}">View Galaxy Resources</a><br><br>
+                <a href="{{url_for('edit_systems')}}">Edit Galaxy Geography</a><br><br>  
+                <a href="{{url_for('view_systems')}}">Edit Galaxy Nations</a><br><br>
+            </p>
+        </div>        
+    </body>
+</html>
