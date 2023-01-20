@@ -115,3 +115,4 @@ dmypy.json
 galaxy.json
 output.png
 output_mask.png
+*.png
