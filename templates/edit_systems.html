@@ -10,6 +10,8 @@
             var edit_mode = 0;
             var selection_text;
 
+            var selections = [[], []];
+
             function FindPosition(oElement)
             {
                 if(typeof( oElement.offsetParent ) != "undefined")
@@ -35,9 +37,9 @@
 
             async function GetCoordinates(e)
             {
-                if (e.which != 1) {
-                    return
-                }
+                // if (e.which != 1) {
+                //     return
+                // }
                 var PosX = 0;
                 var PosY = 0;
                 var ImgPos;
@@ -55,14 +57,13 @@
                 }
                 PosX = PosX - ImgPos[0];
                 PosY = PosY - ImgPos[1];
-                //document.getElementById("x").innerHTML = PosX;
-                //document.getElementById("y").innerHTML = PosY;
-                console.log(`X: ${PosX} | Y: ${PosY}`)
+                //console.log(`X: ${PosX} | Y: ${PosY}`)
                 position_text.innerHTML = `X: ${PosX} | Y: ${PosY}`
-                //var [redIndex, greenIndex, blueIndex, alphaIndex] = getColorIndicesForCoord();
-                //console.log(`R: ${rgba[redIndex]} | G: ${rgba[greenIndex]} | B: ${rgba[blueIndex]}`)
-                selection_text.innerHTML = await get_mask(PosX, PosY)
-                console.log(await get_mask(PosX, PosY))
+
+                // selection_text.innerHTML = await get_mask(PosX, PosY)
+                // console.log(await get_mask(PosX, PosY))
+
+                return [PosX, PosY]
             }
             
             async function get_mask(x, y) {
@@ -79,61 +80,226 @@
                     console.log(result)
                     var raw = JSON.parse(result)['pixel']
                     if (raw[0] != 0) {
-                        var out = raw[0] == 255 ?"Star " : "Lane ";                    
+                        var out = raw[0] == 255 ? "Star " : "Lane ";                    
                         var id = raw[1]
                         id += raw[2] * 255
-                        out += `${id}`                        
-                        return out
+                        out += `${id} (${x}, ${y})`                        
+                        return [out, raw, id, [x, y]]
                     }     
                     else {
-                        return "Background"
+                        return ["Background", [0, 0, 0], -1, [x, y]]
                     }
                 })
                 .catch(error => console.log('error', error));             
             }
 
-            
+            async function handleClick(e) {
+                if (e.which != 1) {
+                    return
+                }
+                Pos = await GetCoordinates(e)
+                Mask = await get_mask(Pos[0], Pos[1])                
+                handleSelection(Mask)
+                console.log(selection_text.innerHTML)
+            }            
 
-            addEventListener('DOMContentLoaded', (event) => {
+            function handleResize(e) {
+                zoom = window.devicePixelRatio
+                ui_elements.style["font-size"] = `${130 / zoom}%`;
+
+                toolbar = document.getElementsByClassName("toolItem")
+                for (var i = 0; i < toolbar.length; i++)
+                {
+                    toolbar[i].style["width"] = `${64 / zoom}px`
+                };
+            }
+
+            function clearSelection(i) {
+                selections[i] = []
+                if (i == 0) {
+                    document.getElementById("selected_item").innerHTML = ""
+                } else {
+                    document.getElementById("selected_item_2").innerHTML = ""
+                }
+            }
+
+            async function applyChanges() {
+                var urlencoded = new URLSearchParams();
+
+                var requestOptions = {
+                method: 'GET',
+                redirect: 'follow'
+                };
+
+                switch (edit_mode) {
+                    case 1: //Delete Star
+                        await fetch(`/api/DeleteStar?id=${selections[0][2]}`, requestOptions)
+                            .then(response => response.text())
+                            .then(result => console.log(result))
+                            .catch(error => console.log('error', error));
+                        break;
+                    case 2: //Add Star       
+                        await fetch(`/api/AddStar?x=${selections[0][3][0]}&y=${selections[0][3][1]}`, requestOptions)
+                            .then(response => response.text())
+                            .then(result => console.log(result))
+                            .catch(error => console.log('error', error));                 
+                        break;
+                    case 3: //Delete Lane
+                        await fetch(`/api/DeleteLane?id=${selections[0][2]}`, requestOptions)
+                            .then(response => response.text())
+                            .then(result => console.log(result))
+                            .catch(error => console.log('error', error));
+                        break;
+                    case 4: //Add Lane
+                        await fetch(`/api/AddLane?id1=${selections[0][2]}&id2=${selections[1][2]}`, requestOptions)
+                            .then(response => response.text())
+                            .then(result => console.log(result))
+                            .catch(error => console.log('error', error));
+                        break;
+                }
+                location.reload()
+            }
+
+            function handleSelection(Mask) {                
+                switch (edit_mode) {
+                    case 0: //Viewer
+                        selection_text.innerHTML = Mask[0]
+                        selections[0] = Mask
+                        break;
+                    case 1: //Delete Star
+                        if (Mask[1][0] == 255) {
+                            selection_text.innerHTML = Mask[0]
+                            selections[0] = Mask
+                        }                        
+                        break;
+                    case 2: //Add star    
+                        if (Mask[1][0] == 0) {
+                            selection_text.innerHTML = `Valid Star Position @ ${Mask[3][0]}, ${Mask[3][1]}`
+                            selections[0] = Mask
+                        }                    
+                        break;
+                    case 3: //Delete Lane
+                        if (Mask[1][0] == 127) {
+                            selection_text.innerHTML = Mask[0]
+                            selections[0] = Mask
+                        }  
+                        break;
+                    case 4: //Add Lane
+                        if (Mask[1][0] == 255) {
+                            if (selections[0].length == 0) {
+                                //Fill 1st Slot
+                                selection_text.innerHTML = Mask[0]
+                                selections[0] = Mask
+                            }
+                            else {
+                                //Fill 2nd Slot
+                                document.getElementById("selected_item_2").innerHTML = Mask[0]
+                                selections[1] = Mask
+                            }
+                            //Enable Confirm Button
+                            document.getElementById("confirm_button").disabled = selections[0].length == 0 || selections[1].length == 0                                
+                        }
+                        break;
+                }
+            }
+
+            function updateButtons() {
+                document.getElementById("confirm_button").hidden = edit_mode == 0
+                document.getElementById("clear_1").hidden = edit_mode != 4
+                document.getElementById("clear_2").hidden = edit_mode != 4
+                document.getElementById("selected_item_2").hidden = edit_mode != 4
+            }
+
+            addEventListener('DOMContentLoaded', (event) => {                
+
+                ui_elements = document.getElementById("fixed_ui")
+
+                window.onresize = handleResize;
+                handleResize()
+
                 myImg = document.getElementById("myImgId");
-                myImg.onmousedown = GetCoordinates;
+                myImg.onmousemove = GetCoordinates;
+                myImg.onmousedown = handleClick;
+
+                document.getElementById("confirm_button").onclick = applyChanges
 
                 position_text = document.getElementById("coord_viewer")
                 selection_text = document.getElementById("selected_item")
 
+                document.getElementById("clear_1").onclick = (event) => {
+                    clearSelection(0)
+                }
+                document.getElementById("clear_2").onclick = (event) => {
+                    clearSelection(1)
+                }                
+
+                mode_text = document.getElementById("edit_mode")
                 var link = document.getElementById('b_viewer');
                 link.onclick = (event) => {
                     console.log("Viewer Mode")
                     edit_mode = 0;
+                    mode_text.innerHTML = "Mode: View"
+                    
+                    
                 };
 
-                link = document.getElementById('b_mod_star');
+                link = document.getElementById('b_del_star');
                 link.onclick = (event) => {
                     console.log("Star Modifier")
                     edit_mode = 1;
+                    mode_text.innerHTML = "Mode: Modify Star"
+                    
+                    updateButtons()
                 };
 
                 link = document.getElementById('b_add_star');
                 link.onclick = (event) => {
                     console.log("Add Star")
                     edit_mode = 2;
+                    mode_text.innerHTML = "Mode: Add Star"
+
+                    updateButtons()
                 };
 
                 link = document.getElementById('b_del_lane');
                 link.onclick = (event) => {
                     console.log("Delete Lane")
                     edit_mode = 3;
+                    mode_text.innerHTML = "Mode: Delete Lane"
+
+                    updateButtons()
                 };
 
                 link = document.getElementById('b_add_lane');
                 link.onclick = (event) => {
                     console.log("Add Lane")
                     edit_mode = 4;
+                    mode_text.innerHTML = "Mode: Add Lane"
+
+                    updateButtons()
                 };
+
+                updateButtons()
+                
+                window.scrollTo(window.scrollMaxX / 2, window.scrollMaxY / 2)
             });
         </script>
     </head>
     <style>
+        #sideinfo {
+            /* pointer-events: none; */
+            position: fixed; 
+            left: 1%; 
+            top: 1%; 
+            z-index: 3000; 
+            padding: 5px; 
+            border-radius: 5px; 
+            background-color: rgba(255, 255, 255, 0.5); 
+            border: 2px solid aqua
+        }
+        #sideinfo button {
+            font-size: 75%;
+        }
         #toolbar a {
             display: block;
             background-color: rgba(255, 255, 255, 0.5); 
@@ -150,26 +316,29 @@
     </style>
     <body>        
         <img id="myImgId" src="output.png" style="margin: 0 auto; z-index: 0;">
-        <div>
-            <div style="position: fixed; left: 1%; top: 1%; z-index: 3000; padding: 5px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.5); border: 2px solid aqua">
+        <div id="fixed_ui">
+            <div id="sideInfo">
+                <p id="edit_mode">Mode: View</p>
                 <p id="coord_viewer">X: 0, Y:0</p>
-                <p id="selected_item">No Object Selected</p>
+                <p style="pointer-events: all; display: inline;" id="selected_item"></p><button id="clear_1">X</button><br>
+                <p style="pointer-events: all; display: inline;" id="selected_item_2"></p><button id="clear_2" hidden>X</button><br>
+                <button id="confirm_button" style="pointer-events: all;">Apply Changes</button>
             </div>            
             <div id="toolbar" style="position: fixed; left: 1%; top: 25%; z-index: 3000;">
                 <a id="b_viewer">
-                    <img style="width: 64px;" src="images\eye_icon.png">
+                    <img class="toolItem" style="width: 64px;" src="images\eye_icon.png">
                 </a>
-                <a id="b_mod_star">
-                    <img style="width: 64px;" src="images\select_star.png">
+                <a id="b_del_star">
+                    <img class="toolItem" style="width: 64px;" src="images\select_star.png">
                 </a>
                 <a id="b_add_star">
-                    <img style="width: 64px;" src="images\add_star.png">
+                    <img class="toolItem" style="width: 64px;" src="images\add_star.png">
                 </a>
                 <a id="b_del_lane">
-                    <img style="width: 64px;" src="images\select_lane.png">
+                    <img class="toolItem" style="width: 64px;" src="images\select_lane.png">
                 </a>
                 <a id="b_add_lane">
-                    <img style="width: 64px;" src="images\add_lane.png">
+                    <img class="toolItem" style="width: 64px;" src="images\add_lane.png">
                 </a>
             </div>            
         </div>

@@ -1,17 +1,33 @@
 from flask import Flask, render_template, send_from_directory, url_for, redirect, session
 from flask import request
-import json
+import json, codecs
 import os
 import requests
 #import subprocess
 from flask_cors import CORS #comment this on deployment
 import numpy as np
 from PIL import Image
+from render import inverse_conversion
+import render as Renderer
 
 app = Flask(__name__, static_folder='')
 CORS(app)
-input_image = Image.open("output_mask.png")
-input_array = np.array(input_image) / 255
+input_image = Renderer.render()
+#input_array = np.array(input_image) / 255
+
+def saveGalaxy(path = "galaxy.json", render = True):
+    global input_image
+    json.dump(galaxy, codecs.open(path, 'w', encoding='utf-8'), 
+          separators=(',', ':'), 
+          sort_keys=True, 
+          indent=4)
+    if render:
+        input_image = Renderer.render()        
+        #input_array = np.array(input_image) / 255
+
+galaxy = json.load(open("galaxy.json"))
+
+
 
 @app.route("/")
 def director():
@@ -35,9 +51,59 @@ def view_resources():
 
 @app.route("/api/getMask")
 def getMask():
-    x = request.args.get('x')
-    y = request.args.get('y')
-    return {'pixel':input_image.getpixel((int(x),int(y)))}
+    x = int(request.args.get('x'))
+    y = int(request.args.get('y'))
+    return {'pixel':np.ndarray.tolist(input_image[y, x][::-1])}
+
+@app.route("/api/DeleteStar")
+def delStar():
+    id = int(request.args.get('id', None))
+    star = galaxy['stars'].pop(id)
+    #check for and delete any duplicates
+    ids = [i for i in range(len(galaxy)) if galaxy['stars'][i] == star]
+    ids.append(id)
+    for i in ids:
+        galaxy['stars'].pop(id)
+    for lane in galaxy['hyperlanes']:
+        for i in ids:
+            if i in lane:
+                print(lane)
+                galaxy['hyperlanes'].remove(lane)
+    saveGalaxy()
+    return f"Successfully Deleted Star {id}"
+
+@app.route("/api/AddStar")
+def addStar():
+    x = int(request.args.get('x'))
+    y = int(request.args.get('y'))
+    print(f"Add star @ {x}, {y}")
+    coord = inverse_conversion([x, y])
+    print(f"Converted to {coord}")
+    #If star already exists, do nothing
+    if coord not in galaxy['stars']:
+        galaxy['stars'].append(coord)
+    saveGalaxy()    
+    return f"Successfully Added Star {len(galaxy['stars']) - 1}"
+
+@app.route("/api/DeleteLane")
+def delLane():
+    id = int(request.args.get('id', None))
+    lane = galaxy['hyperlanes'].pop(id)
+    #check for and delete any duplicates
+    if lane in galaxy['hyperlanes']:
+        galaxy['hyperlanes'] = list(filter((lane).__ne__, galaxy['hyperlanes']))
+    saveGalaxy()
+    return f"Successfully Deleted Lane {id}"
+
+@app.route("/api/AddLane")
+def addLane():
+    id1 = int(request.args.get('id1', None))
+    id2 = int(request.args.get('id2', None))
+    lane = [id1, id2]
+    if lane not in galaxy['hyperlanes']:
+        galaxy['hyperlanes'].append(lane)
+        saveGalaxy()
+    return f"Successfully Connected Stars {id1} and {id2}"
 
 if __name__ == '__main__':    
     #pgcr_thread = subprocess.run(['python', 'PGCRscanner.py'], capture_output=True, text=True, check=True)

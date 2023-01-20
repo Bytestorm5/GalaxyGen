@@ -113,3 +113,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 galaxy.json
+output.png
+output_mask.png
