@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import json, codecs
 
-system_count = 2500
+system_count = int(input("Enter the amount of systems you want to generate: "))
 
 input_image = Image.open("Distribution.png")
 input_array = np.array(input_image) / 255
