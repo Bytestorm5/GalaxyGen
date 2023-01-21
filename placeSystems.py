@@ -37,7 +37,7 @@ def find_neighbors(pindex, triang):
 
 hyperlanes = []
 
-length_metrics = []
+#length_metrics = []
 
 #conns = {}
 for s in range(len(stars)):
@@ -55,8 +55,9 @@ for s in range(len(stars)):
         if laneCount >= rand:
             break
         c = connections[i]
-        length_metrics.append(np.linalg.norm(np.subtract(star,stars[c])))
+        #length_metrics.append(np.linalg.norm(np.subtract(star,stars[c])))
 
+        #check if hyperlane intersects a pitch-black region
         midpoint = np.add(star, stars[c], dtype=int)//2
         mid_brightness = np.linalg.norm(input_array[midpoint[1], midpoint[0]]) ** 2
         if mid_brightness < 0.05:

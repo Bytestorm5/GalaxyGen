@@ -50,8 +50,25 @@ In all modes except *Add Hyperlane*, clicking on an object other than what is cu
 A "X" button is added next to each selection, which allows you to clear it. 
 
 ## How it works
-TBD
+### Galaxy Generation
+**Star Placement**
+The brightness of each pixel in the Density map is used as a probability of a star being placed there. The brightness is squared so that there is a more natural progression of density from black to white.
+A white pixel is guaranteed to spawn a star, and a black pixel is guaranteed _not_ to spawn a star. Each star's position is saved, and a specific amount (as determined by the `system_count` parameter) of them are randomly picked for use, while the rest are discarded.
+**Hyperlane Placement**
+We start by doing a [Delaunay Triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation) on the set of stars to determine all the possible non-intersecting connections between each star.
+From there, every star is assigned a certain amount of hyperlanes between 1 - 5, determined by taking the average of density and a random variable. This allows randomness in how many lanes a specific star has, while still having it be influenced by local density. That amount of connections are randomly selected from the total possible connections a given system can make.
+### The Output Mask
+You may notice that a second image, `output_mask.png` is generated when the galaxy is rendered. This is what allows the editor interface to determine what object is located at any given pixel. To do this, each pixel is used to encode the type and ID of the object located at a given pixel.
+The Red Channel has three possible values to denote the type:
+ - **0:** Background
+ - **127:** Hyperlane
+ - **255:** Star
 
+The Blue and Green channels encode the ID, and are determined as such:
+ - **Blue Channel:** `id // 255`
+ - **Green Channel:** `id % 255`
+### Country/Resource Rendering
+TBD
 ## Roadmap
 
 **Features:**
