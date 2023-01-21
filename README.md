@@ -91,6 +91,7 @@ TBD
 
 **Architecture:**
  - [ ] Move to Local Application
+ - [ ] Compile to Executable Binaries
 
 ## Disclaimer for people better than me at programming
 This is nowhere near optimized code, and there's almost certainly room for improvement. 
