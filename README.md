@@ -2,7 +2,10 @@
 
 A Locally-Hosted tool to create and edit Stellaris-style Galaxy maps.
 
+[Installation Guide](INSTALLATION.md)
+
 ## How to use
+
 ### Density Map
 ![Example of a Density Map](docs\assets\Sample_Distribution.png)
 The Density Map determines the shape of your galaxy, as well as how likely stars are to spawn in specific regions. The Density Map should be grayscale, with dark values indicating low density and bright values indicating high density. 
@@ -67,6 +70,11 @@ The Red Channel has three possible values to denote the type:
 The Blue and Green channels encode the ID, and are determined as such:
  - **Blue Channel:** `id // 255`
  - **Green Channel:** `id % 255`
+ More intuitively, you can consider the Blue and Green channels to be the quotient and remainder of dividing the ID of the object by 255. 
+ 
+ This approach limits us to creating 65280 instances of any given object (Hyperlanes or Stars). The Hyperlanes become the more important bottleneck, and limit us to roughly 7000-9000 stars, which is more than enough for most generations.
+ 
+ This can pretty easily be expanded by utilizing more of the Red channel (i.e. Giving Hyperlanes a _range_ of Red Channel values rather than just one), should the need arise.
 ### Country/Resource Rendering
 TBD
 ## Roadmap
