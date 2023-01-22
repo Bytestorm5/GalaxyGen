@@ -89,6 +89,7 @@ output_json['width'] = input_image.size[0]
 output_json['height'] = input_image.size[1]
 output_json['stars'] = list(stars)
 output_json['hyperlanes'] = list(hyperlanes)
+output_json['ownership'] = []
 
 json.dump(output_json, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
           separators=(',', ':'), 
