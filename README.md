@@ -5,7 +5,10 @@ A Locally-Hosted tool to create and edit Stellaris-style Galaxy maps.
 [Installation Guide](INSTALLATION.md)
 
 ## How to use
-
+1. Create a Density Map named "Distribution.png"
+2. Run `placeSystems.py`
+3. Render it with `render.py`, or view it with `editor_site.py`
+4. If in site, you can touch up the generation to your liking
 ### Density Map
 ![Example of a Density Map](docs\assets\Sample_Distribution.png)
 The Density Map determines the shape of your galaxy, as well as how likely stars are to spawn in specific regions. The Density Map should be grayscale, with dark values indicating low density and bright values indicating high density. 
