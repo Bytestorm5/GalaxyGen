@@ -10,7 +10,7 @@ A Locally-Hosted tool to create and edit Stellaris-style Galaxy maps.
 3. Render it with `render.py`, or view it with `editor_site.py`
 4. If in site, you can touch up the generation to your liking
 ### Density Map
-![Example of a Density Map](docs\assets\Sample_Distribution.png)
+![Example of a Density Map](docs/assets/Sample_Distribution.png)
 The Density Map determines the shape of your galaxy, as well as how likely stars are to spawn in specific regions. The Density Map should be grayscale, with dark values indicating low density and bright values indicating high density. 
 This is the only actual *map* that you will have to create in order to use GalaxyGen; almost everything else is handled for you. As such, GalaxyGen's generations are almost entirely dependent on the design of the density map. 
 To help get good generations, here are some general guidelines for making a Density Map, in no particular order:
