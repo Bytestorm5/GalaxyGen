@@ -25,7 +25,7 @@ If you apply a blur, I would reccomend touching up these areas to make sure they
  - **Keep the Input Image Small**
 To ensure all of the galaxy's detail is represented properly, the output image ends up being significantly larger than the input. By default, this scale factor is *16*. That means an 800x800 image results in a *12800x12800* output image (which is enough to represent ~2500 stars). I'd say that 1250x1250 is a reasonable upper limit, though feel free to experiment. The site it built to handle large images, so don't be scared of the huge resolution size.
 ### Galaxy Generation
-If you haven't already, [Download and Build](Installation.md) GalaxyGen. 
+If you haven't already, [Download and Build](INSTALLATION.md) GalaxyGen. 
 Once you've created your density map, save it as `Distribution.png` and place it in the root directory (meaning the same folder as `placeSystems.py`). 
 From there, run the following command in the terminal opened during set-up:
 ```python placeSystems.py```
