@@ -58,12 +58,13 @@ def getMask():
 @app.route("/api/DeleteStar")
 def delStar():
     id = int(request.args.get('id', None))
-    star = galaxy['stars'].pop(id)
+    star = galaxy['stars'][id]
+    galaxy['stars'][id] = [-1, -1]
     #check for and delete any duplicates
-    ids = [i for i in range(len(galaxy)) if galaxy['stars'][i] == star]
-    ids.append(id)
+    ids = [i for i in range(len(galaxy)) if galaxy['stars'][i] == star]    
     for i in ids:
-        galaxy['stars'].pop(id)
+        galaxy['stars'][i] = [-1, -1]
+    ids.append(id)
     for lane in galaxy['hyperlanes']:
         for i in ids:
             if i in lane:

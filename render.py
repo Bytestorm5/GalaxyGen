@@ -37,6 +37,12 @@ def render():
     GRAY = (104, 104, 104)
     for i in range(len(hyperlanes)):
         h = hyperlanes[i]        
+
+        #check if star was deleted
+        #deleted stars still have to have a listing to keep the index of other stars from breaking
+        if -1 in stars[h[0]] or  -1 in stars[h[1]]:
+            continue
+
         start = pixel_convesion(stars[h[0]])
         end = pixel_convesion(stars[h[1]])
         
@@ -50,6 +56,12 @@ def render():
     ## Draw Stars
     for i in range(len(stars)):
         p = stars[i]
+
+        #check if star was deleted
+        #deleted stars still have to have a listing to keep the index of other stars from breaking
+        if -1 in p:
+            continue
+
         output_image = cv2.circle(output_image, pixel_convesion(p), STAR_SIZE, (255, 255, 255), -1, cv2.LINE_AA)
 
         B = i // 255
