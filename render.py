@@ -4,8 +4,8 @@ import cv2
 import json
 from scipy.spatial import Voronoi
 
-SCALE = 16
-STAR_SIZE = 5
+SCALE = 8
+STAR_SIZE = 3
 
 def pixel_conversion(in_coord, center = True):
     return [(i * SCALE) + (int(0.5 * SCALE) if center else 0) for i in in_coord]
@@ -78,9 +78,9 @@ def render():
     output_raw = output_image.copy()
     cv2.imwrite("output_raw.png", output_raw)
 
-    if "ownership" in galaxy and len(galaxy["ownership"]) > 0:
+    if "resources" in galaxy and len(galaxy["resources"]) > 0:
         ### Render Countries
-        countries = json.load(open("countries.json"))
+        countries = json.load(open("resources.json"))
         voronoi = Voronoi([pixel_conversion(star) for star in galaxy['stars']])   
         
         density = cv2.resize(cv2.cvtColor(cv2.imread("Distribution.png"), cv2.COLOR_BGR2GRAY), tuple(np.array(SIZE) * int(SCALE)))
@@ -91,14 +91,14 @@ def render():
         #Country Overlay layer
         mask = output_raw
 
-        for owner in galaxy["ownership"]:
+        for owner in galaxy["resources"]:
             owner_color = countries[owner['id']]['color']
             for star in owner['systems']:
                 region = np.array(voronoi.vertices[voronoi.regions[voronoi.point_region[star]]])
                 mask = cv2.fillPoly(mask, np.int32([region]), (owner_color[2], owner_color[1], owner_color[0]))
-                mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), 3, cv2.LINE_AA)
+                mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
         mask = cv2.bitwise_and(mask, galaxy_mask)
-        #mask = cv2.medianBlur(mask, 149)  <<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
+        #mask = cv2.medianBlur(mask, 149)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
         output_image = cv2.addWeighted(output_image, 0.5, mask, 0.5, 0)
 
     cv2.imwrite("output.png", output_image)
