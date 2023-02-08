@@ -1,17 +1,29 @@
 from PIL import Image
 import numpy as np
 import cv2
-import json
+import json, codecs
 from scipy.spatial import Voronoi
 
-SCALE = 8
+SCALE = 10
 STAR_SIZE = 3
 
 def pixel_conversion(in_coord, center = True):
     return [(i * SCALE) + (int(0.5 * SCALE) if center else 0) for i in in_coord]
 
 def inverse_conversion(in_coord, center = True):
-    return [(i - (int(0.5 * SCALE) if center else 0)) // SCALE for i in in_coord]
+    return np.array([(i - (int(0.5 * SCALE) if center else 0)) // SCALE for i in in_coord])
+
+def get_star_cells(star_list):
+    voronoi = Voronoi(star_list)
+
+    def get_star_region(star_idx):
+        return np.array(voronoi.vertices[voronoi.regions[voronoi.point_region[star_idx]]])
+
+    regions_cache = []
+
+    [regions_cache.append(get_star_region(star).tolist()) for star in range(len(star_list))]
+
+    return regions_cache
 
 ### GENERATE OUTPUT IMAGE
 def render():   
@@ -76,12 +88,14 @@ def render():
     cv2.imwrite("output_mask.png", output_mask)
 
     output_raw = output_image.copy()
-    cv2.imwrite("output_raw.png", output_raw)
+    cv2.imwrite("output_raw.png", output_raw)    
+
+    regions_cache = get_star_cells([pixel_conversion(star) for star in galaxy['stars']])
 
     if "resources" in galaxy and len(galaxy["resources"]) > 0:
         ### Render Countries
         countries = json.load(open("resources.json"))
-        voronoi = Voronoi([pixel_conversion(star) for star in galaxy['stars']])   
+           
         
         density = cv2.resize(cv2.cvtColor(cv2.imread("Distribution.png"), cv2.COLOR_BGR2GRAY), tuple(np.array(SIZE) * int(SCALE)))
         _, galaxy_mask = cv2.threshold(density, 12, 255, cv2.THRESH_BINARY)
@@ -94,7 +108,7 @@ def render():
         for owner in galaxy["resources"]:
             owner_color = countries[owner['id']]['color']
             for star in owner['systems']:
-                region = np.array(voronoi.vertices[voronoi.regions[voronoi.point_region[star]]])
+                region = regions_cache[star]
                 mask = cv2.fillPoly(mask, np.int32([region]), (owner_color[2], owner_color[1], owner_color[0]))
                 mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
         mask = cv2.bitwise_and(mask, galaxy_mask)

@@ -13,10 +13,11 @@ input_array = np.array(input_image) / 255
 print(f"OUTPUT IMAGE SIZE: {np.array(input_image.size) * 16}")
 
 points = []
+#offlimits = []
 ### GENERATE STAR LOCATIONS 
 
 for y in range(input_array.shape[0]):
-    for x in range(input_array.shape[1]): 
+    for x in range(input_array.shape[1]):                
         brightness = np.linalg.norm(input_array[y, x]) ** 2
         rand = np.random.random()        
         if rand < brightness:

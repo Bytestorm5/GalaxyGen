@@ -7,12 +7,12 @@ import requests
 from flask_cors import CORS #comment this on deployment
 import numpy as np
 from PIL import Image
-from render import inverse_conversion
+from render import inverse_conversion, get_star_cells
 import render as Renderer
 
 app = Flask(__name__, static_folder='')
 CORS(app)
-input_image = Renderer.render()
+#input_image = Renderer.render()
 #input_array = np.array(input_image) / 255
 
 def saveGalaxy(path = "galaxy.json", render = True):
@@ -105,6 +105,15 @@ def addLane():
         galaxy['hyperlanes'].append(lane)
         saveGalaxy()
     return f"Successfully Connected Stars {id1} and {id2}"
+
+@app.route("/api/GetCells", methods=['POST'])
+def getCells():
+    if request.content_type == "application/json":
+        stars = request.json
+        regions = get_star_cells(stars)
+        return json.dumps(regions)
+    else:
+        return "Invalid Request Type!"
 
 if __name__ == '__main__':    
     #pgcr_thread = subprocess.run(['python', 'PGCRscanner.py'], capture_output=True, text=True, check=True)
