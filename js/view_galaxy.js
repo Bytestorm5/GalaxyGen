@@ -370,16 +370,16 @@ function pnpoly( nvert, vertx, verty, testx, testy ) {
             adjustZoom(-0.05)
         }
         else if (e.key === "ArrowLeft") {
-            cameraOffset.x -= 5
-        }
-        else if (e.key === "ArrowRight") {
             cameraOffset.x += 5
         }
+        else if (e.key === "ArrowRight") {
+            cameraOffset.x -= 5
+        }
         else if (e.key === "ArrowDown") {
-            cameraOffset.y -= 5
+            cameraOffset.y += 5
         }
         else if (e.key === "ArrowUp") {
-            cameraOffset.y += 5
+            cameraOffset.y -= 5
         }
         //console.log(galaxy) Can access galaxy from this scope
     })   
