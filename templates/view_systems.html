@@ -31,7 +31,7 @@
                 font-size: 75%;
             }
         </style>   
-        <script src="/js/view_galaxy.js"></script>   
+        <script src="/js/view_galaxy.js" type="text/javascript"></script>   
     </head>
     <body>
         <div id="fixed_ui">
@@ -43,14 +43,5 @@
             </div> 
         </div>
         <canvas id="canvas"></canvas>       
-        <script>
-            document.addEventListener("keydown", (e) => {  
-                if (e.key === "[" || e.key == "]") {
-                    country_mode = !country_mode
-                    document.getElementById("mode").innerHTML = `Mode: View (${country_mode ? "Countries" : "Resources"})`
-                }
-                //console.log(galaxy) Can access galaxy from this scope
-            })            
-        </script> 
     </body>
 </html>

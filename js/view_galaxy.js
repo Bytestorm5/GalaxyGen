@@ -116,19 +116,6 @@ async function canvasSetup() {
                 drawPoly(r, `rgba(${data.color[0]}, ${data.color[1]}, ${data.color[2]}, 0.5)`, `rgba(${data.color[0]}, ${data.color[1]}, ${data.color[2]}, 0.75)`, 0.3 * SCALE, SCALE, element['id'])
             })
         })
-
-        imatrix = ctx.getTransform().invertSelf()
-        var matconv_x = mouseX * imatrix.a + mouseY * imatrix.c + imatrix.e;
-        var matconv_y = mouseX * imatrix.b + mouseY * imatrix.d + imatrix.f;
-
-        drawCircle(ctx, matconv_x, matconv_y, 1.25, 'rgba(0,0,0,0)', 'yellow', 0.4, -1)
-
-        drawCircle(ctx, mouseX, mouseY, 1.25, 'rgba(0,0,0,0)', 'yellow', 0.4, -1)
-        drawCircle(ctx, mouseX - cameraOffset.x, mouseY - cameraOffset.y, 1.25, 'rgba(0,0,0,0)', 'aqua', 0.4, -1)
-
-        drawCircle(ctx, Math.round(mouseX*Math.pow(cameraZoom, 0.5) - cameraOffset.x), Math.round(mouseY*Math.pow(cameraZoom, 0.5) - cameraOffset.y), 1.25, 'rgba(0,0,0,0)', 'red', 0.4, -1)
-
-        requestAnimationFrame( draw )
     }
 
     // Gets the relevant location from a mouse or single touch event
@@ -302,6 +289,10 @@ async function canvasSetup() {
     //     return c; 
     // }
 
+    function getTransformedPoint(x, y) {
+        const originalPoint = new DOMPoint(x, y);
+        return ctx.getTransform().invertSelf().transformPoint(originalPoint);
+    } 
     
 function pnpoly( nvert, vertx, verty, testx, testy ) { 
     var i, j, c = false;
@@ -309,17 +300,17 @@ function pnpoly( nvert, vertx, verty, testx, testy ) {
          //alert( 'verty[i] - ' + verty[i] + ' testy - ' + testy + ' verty[j] - ' + verty[j] + ' testx - ' + testx); 
          if( ( ( verty[i] > testy ) != ( verty[j] > testy ) ) && ( testx < ( vertx[j] - vertx[i] ) * ( testy - verty[i] ) / ( verty[j] - verty[i] ) + vertx[i] ) ) {
              c = !c; 
-             alert('Condition true') 
+             //alert('Condition true') 
             } 
         } 
         return c; 
     }
 
     function handleClick(e) { 
-        mouseX = getEventLocation(e).x
-        mouseY = getEventLocation(e).y     
-        v_mouseX = Math.round(mouseX - cameraOffset.x) //parseInt(e.clientX-cameraOffset.x);
-        v_mouseY = Math.round(mouseY - cameraOffset.y) //parseInt(e.clientY-cameraOffset.y);        
+        mouse = getTransformedPoint(getEventLocation(e).x, getEventLocation(e).y)
+        mouseX = mouse.x
+        mouseY = mouse.y
+      
 
         document.getElementById("active").innerHTML = `Loading... (${mouseX}, ${mouseY})`
 
@@ -340,7 +331,7 @@ function pnpoly( nvert, vertx, verty, testx, testy ) {
                 xs = region.map(x => x[0] * SCALE)
                 ys = region.map(x => x[1] * SCALE)
 
-                if (pnpoly(region.length, xs, ys, v_mouseX, v_mouseY)) {
+                if (pnpoly(region.length, xs, ys, mouseX, mouseY)) {
                     document.getElementById("active").innerHTML = `${country_mode ? "Country" : "Resource"}: ${data['name']} (Region ${j})`
                     selected_region = j
                     found = true
@@ -365,7 +356,33 @@ function pnpoly( nvert, vertx, verty, testx, testy ) {
     canvas.addEventListener('mousemove', onPointerMove)
     canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
     canvas.addEventListener( 'wheel', (e) => adjustZoom(e.deltaY*SCROLL_SENSITIVITY))                
-    // Ready, set, go
+    
+    document.addEventListener("keydown", (e) => {  
+        if (e.key === "[" || e.key == "]") {
+            country_mode = !country_mode
+            document.getElementById("mode").innerHTML = `Mode: View (${country_mode ? "Countries" : "Resources"})`
+        }
+        else if (e.key === "+" || e.key === "=") {
+            adjustZoom(0.05)
+        }
+        else if (e.key === "-" || e.key === "_") {
+            adjustZoom(-0.05)
+        }
+        else if (e.key === "ArrowLeft") {
+            cameraOffset.x -= 5
+        }
+        else if (e.key === "ArrowRight") {
+            cameraOffset.x += 5
+        }
+        else if (e.key === "ArrowDown") {
+            cameraOffset.y -= 5
+        }
+        else if (e.key === "ArrowUp") {
+            cameraOffset.y += 5
+        }
+        //console.log(galaxy) Can access galaxy from this scope
+    })   
+
     draw()
 }
 document.addEventListener('DOMContentLoaded', canvasSetup)
