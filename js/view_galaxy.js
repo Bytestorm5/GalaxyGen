@@ -116,6 +116,7 @@ async function canvasSetup() {
                 drawPoly(r, `rgba(${data.color[0]}, ${data.color[1]}, ${data.color[2]}, 0.5)`, `rgba(${data.color[0]}, ${data.color[1]}, ${data.color[2]}, 0.75)`, 0.3 * SCALE, SCALE, element['id'])
             })
         })
+        requestAnimationFrame(draw)
     }
 
     // Gets the relevant location from a mouse or single touch event
@@ -344,7 +345,7 @@ function pnpoly( nvert, vertx, verty, testx, testy ) {
         }
 
         if (!found) {
-            document.getElementById("active").innerHTML = `Background (${mouseX}, ${mouseY})`
+            document.getElementById("active").innerHTML = `Background (${Math.round(mouseX)}, ${Math.round(mouseY)})`
         }
     }
 
