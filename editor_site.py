@@ -35,7 +35,7 @@ def director():
 
 @app.route("/edit-galaxy")
 def edit_systems():
-    return render_template("edit_systems.html") 
+    return render_template("edit_systems_new.html") 
 
 @app.route("/edit-countries")
 def edit_nations():

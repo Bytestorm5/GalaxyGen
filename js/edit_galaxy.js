@@ -379,22 +379,22 @@ async function canvasSetup() {
     canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
     canvas.addEventListener( 'wheel', (e) => adjustZoom(e.deltaY*SCROLL_SENSITIVITY))                
     
+    function updateViewText() {
+        let modetext = ""
+        if (view_mode == 0) { modetext = "Geography" }
+        if (view_mode == 1) { modetext = "Resource" }
+        if (view_mode == 2) { modetext = "Country" }
+        document.getElementById("mode").innerHTML = `View: ${modetext})`
+    }
+
     document.addEventListener("keydown", (e) => {  
         if (e.key === "[") {
-            view_mode = country_mode + 1 % 3
-            let modetext = ""
-            if (view_mode == 0) { modetext = "Geography" }
-            if (view_mode == 1) { modetext = "Resource" }
-            if (view_mode == 2) { modetext = "Country" }
-            document.getElementById("mode").innerHTML = `View: ${modetext})`
+            view_mode = (country_mode + 1) % 3
+            updateViewText()
         }
         else if (e.key === "]") {
-            view_mode = country_mode + 1 % 3
-            let modetext = ""
-            if (view_mode == 0) { modetext = "Geography" }
-            if (view_mode == 1) { modetext = "Resource" }
-            if (view_mode == 2) { modetext = "Country" }
-            document.getElementById("mode").innerHTML = `View: ${modetext})`
+            view_mode = (country_mode - 1) % 3
+            updateViewText()
         }
         else if (e.key === "+" || e.key === "=") {
             adjustZoom(0.05)
@@ -419,50 +419,54 @@ async function canvasSetup() {
 
     draw()
 }
+
+async function toolbarSetup() {
+    edit_mode_text = document.getElementById("edit_mode")
+    var link = document.getElementById('b_viewer');
+    link.onclick = (event) => {
+        console.log("Viewer Mode")
+        edit_mode = 0;
+        mode_text.innerHTML = "Edit Mode: None" 
+    };
+
+    link = document.getElementById('b_del_star');
+    link.onclick = (event) => {
+        console.log("Star Modifier")
+        edit_mode = 1;
+        mode_text.innerHTML = "Edit Mode: Modify Star"
+        
+        updateButtons()
+    };
+
+    link = document.getElementById('b_add_star');
+    link.onclick = (event) => {
+        console.log("Add Star")
+        edit_mode = 2;
+        mode_text.innerHTML = "Edit Mode: Add Star"
+
+        updateButtons()
+    };
+
+    link = document.getElementById('b_del_lane');
+    link.onclick = (event) => {
+        console.log("Delete Lane")
+        edit_mode = 3;
+        mode_text.innerHTML = "Edit Mode: Delete Lane"
+
+        updateButtons()
+    };
+
+    link = document.getElementById('b_add_lane');
+    link.onclick = (event) => {
+        console.log("Add Lane")
+        edit_mode = 4;
+        mode_text.innerHTML = "Edit Mode: Add Lane"
+
+        updateButtons()
+    };
+
+    updateButtons()
+}
+
 document.addEventListener('DOMContentLoaded', canvasSetup)
-
-edit_mode_text = document.getElementById("edit_mode")
-var link = document.getElementById('b_viewer');
-link.onclick = (event) => {
-    console.log("Viewer Mode")
-    edit_mode = 0;
-    mode_text.innerHTML = "Edit Mode: None" 
-};
-
-link = document.getElementById('b_del_star');
-link.onclick = (event) => {
-    console.log("Star Modifier")
-    edit_mode = 1;
-    mode_text.innerHTML = "Edit Mode: Modify Star"
-    
-    updateButtons()
-};
-
-link = document.getElementById('b_add_star');
-link.onclick = (event) => {
-    console.log("Add Star")
-    edit_mode = 2;
-    mode_text.innerHTML = "Edit Mode: Add Star"
-
-    updateButtons()
-};
-
-link = document.getElementById('b_del_lane');
-link.onclick = (event) => {
-    console.log("Delete Lane")
-    edit_mode = 3;
-    mode_text.innerHTML = "Edit Mode: Delete Lane"
-
-    updateButtons()
-};
-
-link = document.getElementById('b_add_lane');
-link.onclick = (event) => {
-    console.log("Add Lane")
-    edit_mode = 4;
-    mode_text.innerHTML = "Edit Mode: Add Lane"
-
-    updateButtons()
-};
-
-updateButtons()
+document.addEventListener('DOMContentLoaded', toolbarSetup)

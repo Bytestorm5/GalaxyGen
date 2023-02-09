@@ -3,21 +3,15 @@ import json, codecs
 import random
 import time
 
-start_time = time.time()
 
-galaxy = json.load(open("galaxy.json"))
-hyperlanes = galaxy['hyperlanes']
-stars = galaxy['stars']
 
-indices = list(range(len(stars)))
-
-resources = json.load(open("resources.json"))
 
 metadata = []
 
-def KNN(idx, n = 5):
+def KNN(idx, indices, stars, n = 5):
     if n == 0:
         return []
+    
     pool = np.array(stars)
 
     start = np.array(stars[idx])
@@ -36,9 +30,7 @@ def KNN(idx, n = 5):
 def radius(p):
     return np.sqrt(p[0] ** 2 + p[1] ** 2)  
 
-GALAXY_RADIUS = radius((galaxy['width'], galaxy['height']))
-
-def weight_by_centricity(a, r):
+def weight_by_centricity(a, r, GALAXY_RADIUS):
     mr = r / GALAXY_RADIUS
     return ((a*mr + (0.5 * (1 - a))) ** max(6 * abs(a), 1))
 
@@ -48,38 +40,57 @@ def seed_count(rarity):
 def cluster_size(rarity):
     return int(9 * (1 - rarity))
 
-for resource in resources:
-    print(f"Seeding Resource {resource['name']}")
-    seed_systems = random.choices(indices, 
-        weights=[weight_by_centricity(resource['centricity'], radius(star)) for star in np.array(stars)[indices]], 
-        k = seed_count(resource['rarity']))
-    
-    in_systems = seed_systems.copy()
+def gen_resources(resources, galaxy):
+    print("--- Generating Resources ---")
+    stars = galaxy['stars']
+    indices = list(range(len(stars)))
+    metadata = []
+    GALAXY_RADIUS = radius((galaxy['width'], galaxy['height']))    
 
-    [indices.remove(sys) for sys in in_systems]
+    for resource in resources:
+        print(f"Seeding Resource {resource['name']}")
+        seed_systems = random.choices(indices, 
+            weights=[weight_by_centricity(resource['centricity'], radius(star), GALAXY_RADIUS) for star in np.array(stars)[indices]], 
+            k = seed_count(resource['rarity']))
+        
+        in_systems = seed_systems.copy()
 
-    print(f"Creating Clusters for Resource {resource['name']}")
-    i = 1
-    for system in seed_systems:
-        print(f" - Clustering System {i} / {len(seed_systems)}")
-        in_systems += list(KNN(system, cluster_size(resource['rarity'])))
-        [(indices.remove(sys) if sys in indices else None) for sys in in_systems]
-        i += 1
+        [indices.remove(sys) for sys in in_systems]
 
-    print(f"Finalizing Resource {resource['name']}")
-    out_obj = {
-        "id": resources.index(resource),
-        "systems": list(in_systems)
-    }
-    metadata.append(out_obj)
-    print("-----------")
+        print(f"Creating Clusters for Resource {resource['name']}")
+        i = 1
+        for system in seed_systems:
+            print(f" - Clustering System {i} / {len(seed_systems)}")
+            in_systems += list(KNN(system, indices, stars, cluster_size(resource['rarity'])))
+            [(indices.remove(sys) if sys in indices else None) for sys in in_systems]
+            i += 1
 
-print(metadata)
+        print(f"Finalizing Resource {resource['name']}")
+        out_obj = {
+            "id": resources.index(resource),
+            "systems": list(in_systems)
+        }
+        metadata.append(out_obj)
+        print("-----------")
+    return metadata
 
-galaxy['resources'] = metadata
-json.dump(galaxy, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
-          separators=(',', ':'), 
-          sort_keys=True, 
-          indent=4)
 
-print("--- %s seconds ---" % (time.time() - start_time))
+if __name__ == "__main__":
+    start_time = time.time()
+
+    galaxy = json.load(open("galaxy.json"))
+    stars = galaxy['stars']
+
+    indices = list(range(len(stars)))
+
+    resources = json.load(open("resources.json"))
+
+    metadata = gen_resources(resources, galaxy)
+
+    galaxy['resources'] = metadata
+    json.dump(galaxy, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
+            separators=(',', ':'), 
+            sort_keys=True, 
+            indent=4)
+
+    print("--- %s seconds ---" % (time.time() - start_time))
