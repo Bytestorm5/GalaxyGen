@@ -2,6 +2,9 @@ var galaxy;
 var resources;
 var countries;
 
+var selection1 = undefined;
+var selection2 = undefined;
+
 //0 = View
 //1 = Add Star
 //2 = Modify Star
@@ -23,6 +26,32 @@ async function getJsonFile(filename) {
     });
 }  
 
+function updateViewText() {
+    let modetext = ""        
+    if (view_mode == 0) { modetext = "Geography" }
+    if (view_mode == 1) { modetext = "Resource" }
+    if (view_mode == 2) { modetext = "Country" }
+    console.log(`View Mode | ${view_mode}: ${modetext}`)
+    document.getElementById("mode").innerHTML = `View: ${modetext}`
+}
+
+//0 = View
+//1 = Add Star
+//2 = Modify Star
+//3 = Delete Lane
+//4 = Add Lane
+function updateEditText() {
+    let modetext = ""        
+    if (edit_mode == 0) { modetext = "None" }
+    if (edit_mode == 1) { modetext = "Add Star" }
+    if (edit_mode == 2) { modetext = "Modify Star" }
+    if (edit_mode == 3) { modetext = "Delete Lane" }
+    if (edit_mode == 4) { modetext = "Add Lane" }
+    console.log(`Edit Mode | ${edit_mode}: ${modetext}`)
+    document.getElementById("edit_mode").innerHTML = `Edit: ${modetext}`
+    updateButtons()
+}
+
 async function get_mask(x, y) {
     var requestOptions = {
         method: 'GET',
@@ -40,11 +69,11 @@ async function get_mask(x, y) {
             var out = raw[0] == 255 ? "Star " : "Lane ";                    
             var id = raw[1]
             id += raw[2] * 255
-            out += `${id} (${x}, ${y})`                        
+            out += `${id} (${Math.round(x)}, ${Math.round(y)})`
             return [out, raw, id, [x, y]]
         }     
         else {
-            return ["Background", [0, 0, 0], -1, [x, y]]
+            return ["Background", [0, 0, 0], -1, [Math.round(x), Math.round(y) ]]
         }
     })
     .catch(error => console.log('error', error));             
@@ -86,6 +115,54 @@ function saveGalaxy() {
     //Restore voronoi for renderer
     galaxy['voronoi'] = voronoi
 }
+
+function pnpoly( nvert, vertx, verty, testx, testy ) { 
+    var i, j, c = false;
+    for( i = 0, j = nvert-1; i < nvert; j = i++ ) {
+        //alert( 'verty[i] - ' + verty[i] + ' testy - ' + testy + ' verty[j] - ' + verty[j] + ' testx - ' + testx); 
+        if( ( ( verty[i] > testy ) != ( verty[j] > testy ) ) && ( testx < ( vertx[j] - vertx[i] ) * ( testy - verty[i] ) / ( verty[j] - verty[i] ) + vertx[i] ) ) {
+            c = !c; 
+            //alert('Condition true') 
+        } 
+    } 
+    return c; 
+}    
+
+//This is inefficient but isn't slow enough to be a problem (for now)
+function searchRegionForSystem(active_regions, file, x, y) {
+    for (var i = 0; i < active_regions.length; i++) {
+        region_instance = active_regions[i]
+        data = file[region_instance['id']]
+
+        selected_region = -1
+        j = 0
+        while (j < region_instance['systems'].length && selected_region == -1) {
+            region = galaxy.voronoi[region_instance['systems'][j]]
+
+            xs = region.map(x => x[0] * SCALE)
+            ys = region.map(x => x[1] * SCALE)
+
+            if (pnpoly(region.length, xs, ys, x, y)) {
+                selected_region = j
+            }
+            j++
+        }
+        if (selected_region != -1) {
+            //Found Valid Region
+            return {
+                "instance": region_instance,
+                "instance_index": i,
+                "selected_region": j
+            }
+        }
+    }
+    return {
+        "instance": null,
+        "instance_index": -1,
+        "selected_region": null
+    }
+}
+
 async function canvasSetup() {           
     galaxy = await getJsonFile('galaxy.json') 
     resources = await getJsonFile('resources.json') 
@@ -299,9 +376,9 @@ async function canvasSetup() {
             cameraZoom = Math.min( cameraZoom, MAX_ZOOM )
             cameraZoom = Math.max( cameraZoom, MIN_ZOOM )
             
-            console.log(cameraZoom)
-            console.log(`Mouse: ${mouseX}, ${mouseY}`)
-            console.log(`Offset: ${cameraOffset.x}, ${cameraOffset.y}`)
+            // console.log(cameraZoom)
+            // console.log(`Mouse: ${mouseX}, ${mouseY}`)
+            // console.log(`Offset: ${cameraOffset.x}, ${cameraOffset.y}`)
             // console.log(zoomAmount)
         }
     }
@@ -311,62 +388,98 @@ async function canvasSetup() {
         return ctx.getTransform().invertSelf().transformPoint(originalPoint);
     } 
     
-    function pnpoly( nvert, vertx, verty, testx, testy ) { 
-        var i, j, c = false;
-        for( i = 0, j = nvert-1; i < nvert; j = i++ ) {
-            //alert( 'verty[i] - ' + verty[i] + ' testy - ' + testy + ' verty[j] - ' + verty[j] + ' testx - ' + testx); 
-            if( ( ( verty[i] > testy ) != ( verty[j] > testy ) ) && ( testx < ( vertx[j] - vertx[i] ) * ( testy - verty[i] ) / ( verty[j] - verty[i] ) + vertx[i] ) ) {
-                c = !c; 
-                //alert('Condition true') 
-            } 
-        } 
-        return c; 
-    }
-
     async function handleClick(e) { 
         mouse = getTransformedPoint(getEventLocation(e).x, getEventLocation(e).y)
         mouseX = mouse.x
         mouseY = mouse.y
       
+        if (!(edit_mode == 4 && selection1 != null)) {
+            document.getElementById("selected_item_1").innerHTML = `Loading... (${Math.round(mouseX / SCALE)}, ${Math.round(mouseY / SCALE)})`
+        }
 
-        document.getElementById("active").innerHTML = `Loading... (${mouseX}, ${mouseY})`
         if (edit_mode == 0 && view_mode != 0) {
             active_regions = view_mode == 2 ? galaxy.ownership : galaxy.resources
             file = view_mode == 2 ? countries : resources
 
-            found = false
-
-            for (var i = 0; i < active_regions.length; i++) {
-                region_instance = active_regions[i]
-                data = file[region_instance['id']]
-
-                selected_region = -1
-                j = 0
-                while (j < region_instance['systems'].length && selected_region == -1) {
-                    region = galaxy.voronoi[region_instance['systems'][j]]
-
-                    xs = region.map(x => x[0] * SCALE)
-                    ys = region.map(x => x[1] * SCALE)
-
-                    if (pnpoly(region.length, xs, ys, mouseX, mouseY)) {
-                        document.getElementById("active").innerHTML = `${country_mode ? "Country" : "Resource"}: ${data['name']} (Region ${j})`
-                        selected_region = j
-                        found = true
-                    }
-                    j++
-                }
-                if (selected_region != -1) {
-                    break
-                }
+            search = searchRegionForSystem(active_regions, file, mouseX, mouseY)
+            if (search["instance"] != null) {
+                document.getElementById("selected_item_1").innerHTML = `${view_mode == 2 ? "Country" : "Resource"}: ${search["instance"]["name"]} (Region ${search["selected_region"]})`
             }
-
-            if (!found) {
-                document.getElementById("active").innerHTML = `Background (${Math.round(mouseX)}, ${Math.round(mouseY)})`
+            else {
+                document.getElementById("selected_item_1").innerHTML = `Background (${Math.round(mouseX / SCALE)}, ${Math.round(mouseY / SCALE)})`
             }
         }
         else if (edit_mode != 0) {
-            maskPoint = await get_mask(mouseX, mouseY)
+            //console.log(`${mouseX / SCALE}, ${mouseY / SCALE}`)
+            maskPoint = await get_mask(mouseX / SCALE, mouseY / SCALE)
+            console.log(maskPoint)
+            
+            //1 = Add Star          
+            if (edit_mode == 1 && maskPoint[1][0] == 0) {
+                selection1 = maskPoint
+                updateButtons()
+            }
+            //2 = Modify Star
+            else if (edit_mode == 2 && maskPoint[1][0] == 255) {
+                selection1 = maskPoint
+                updateButtons()
+            }
+            //3 = Delete Lane
+            else if (edit_mode == 3 && maskPoint[1][0] == 127) {
+                selection1 = maskPoint
+                updateButtons()
+            }
+            //4 = Add Lane
+            else if (edit_mode == 4 && maskPoint[1][0] == 255) {
+                if (selection1 == null) {
+                    //First Selection
+                    selection1 = maskPoint
+                    document.getElementById("selected_item_1").innerHTML = `Selected: ${maskPoint[0]}`
+                }
+                else {
+                    //Second Selection
+                    selection2 = maskPoint
+                    document.getElementById("selected_item_2").innerHTML = `Selected: ${maskPoint[0]}`
+                }
+                updateButtons()
+            }     
 
+            if (edit_mode != 4) {
+                document.getElementById("selected_item_1").innerHTML = `Selected: ${maskPoint[0]}`
+            }
+        }
+    }
+
+    function applyChanges() {
+        //1 = Add Star          
+        if (edit_mode == 1 && maskPoint[1][0] == 0) {
+            rounded_point = [Math.round(mouseX / SCALE), Math.round(mouseY / SCALE)]
+            galaxy.stars.push(rounded_point)
+        }
+        //2 = Modify Star
+        else if (edit_mode == 2 && maskPoint[1][0] == 255) {
+            resource_dropdown = document.getElementById("resource_dropdown")
+            owner_dropdown = document.getElementById("owner_dropdown")
+            console.log(`R: ${resource_dropdown.value} | C: ${owner_dropdown.value}`)
+        }
+        //3 = Delete Lane
+        else if (edit_mode == 3 && maskPoint[1][0] == 127) {
+            galaxy.hyperlanes.splice(maskPoint[2], 1)
+        }
+        //4 = Add Lane
+        else if (edit_mode == 4 && maskPoint[1][0] == 255) {
+            new_lane = [selection1[2], selection2[2]]
+            galaxy.hyperlanes.push(new_lane)
+        }         
+    }
+
+    document.getElementById("confirm_button").onclick = (event) => {
+        applyChanges()
+    }
+    document.getElementById("delete_button").onclick = (event) => {
+        if (edit_mode == 2 && selection1[1][0] == 255) {
+            //Condition should never be false, but better safe than sorry
+            galaxy.stars[selection1[2]] = [-1, -1]
         }
     }
 
@@ -377,24 +490,28 @@ async function canvasSetup() {
     canvas.addEventListener('touchend',  (e) => handleTouch(e, onPointerUp))
     canvas.addEventListener('mousemove', onPointerMove)
     canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
-    canvas.addEventListener( 'wheel', (e) => adjustZoom(e.deltaY*SCROLL_SENSITIVITY))                
-    
-    function updateViewText() {
-        let modetext = ""
-        if (view_mode == 0) { modetext = "Geography" }
-        if (view_mode == 1) { modetext = "Resource" }
-        if (view_mode == 2) { modetext = "Country" }
-        document.getElementById("mode").innerHTML = `View: ${modetext})`
+    canvas.addEventListener( 'wheel', (e) => adjustZoom(e.deltaY*SCROLL_SENSITIVITY))        
+
+    function mod(n, m) {
+        return ((n % m) + m) % m;
     }
 
     document.addEventListener("keydown", (e) => {  
         if (e.key === "[") {
-            view_mode = (country_mode + 1) % 3
+            view_mode = mod((view_mode + 1), 3)
             updateViewText()
         }
         else if (e.key === "]") {
-            view_mode = (country_mode - 1) % 3
+            view_mode = mod((view_mode - 1), 3)
             updateViewText()
+        }
+        else if (e.key === ",") {
+            edit_mode = mod((edit_mode + 1), 5)
+            updateEditText()
+        }
+        else if (e.key === ".") {
+            edit_mode = mod((edit_mode - 1), 5)
+            updateEditText()
         }
         else if (e.key === "+" || e.key === "=") {
             adjustZoom(0.05)
@@ -420,52 +537,89 @@ async function canvasSetup() {
     draw()
 }
 
+function updateButtons() {
+    document.getElementById("confirm_button").hidden = edit_mode == 0
+    document.getElementById("clear_1").hidden = edit_mode != 4
+    document.getElementById("clear_2").hidden = edit_mode != 4
+    document.getElementById("selected_item_2").hidden = edit_mode != 4
+    document.getElementById("star_mod_menu").hidden = edit_mode != 2
+    document.getElementById("delete_button").hidden = edit_mode != 2
+    
+    if (edit_mode == 2) {
+        resource_dropdown = document.getElementById("resource_dropdown")
+        owner_dropdown = document.getElementById("owner_dropdown")
+        
+        if (selection1 != null) {
+            resource_dropdown.innerHTML = "<option value=\"-1\">No Resources</option>"
+            owner_dropdown.innerHTML = "<option value=\"-1\">Unclaimed System</option>"
+
+            resources.forEach(function (element, i) {
+                resource_dropdown.innerHTML += `<option value=\"${i}\">${element["name"]}</option>`
+            })
+
+            countries.forEach(function (element, i) {
+                owner_dropdown.innerHTML += `<option value=\"${i}\">${element["name"]}</option>`
+            })
+
+            resource_dropdown.value = searchRegionForSystem(galaxy.resources, resources, selection1[3][0], selection1[3][1])["instance_index"]
+            owner_dropdown.value = searchRegionForSystem(galaxy.ownership, countries)["instance_index"]  
+        }      
+        else {
+            resource_dropdown = document.getElementById("resource_dropdown")
+            owner_dropdown = document.getElementById("owner_dropdown")
+            resource_dropdown.innerHTML = "<option value=\"-1\">No System Selected</option>"
+            owner_dropdown.innerHTML = "<option value=\"-1\">No System Selected</option>"
+        }
+    }
+}
+
 async function toolbarSetup() {
     edit_mode_text = document.getElementById("edit_mode")
     var link = document.getElementById('b_viewer');
     link.onclick = (event) => {
         console.log("Viewer Mode")
         edit_mode = 0;
-        mode_text.innerHTML = "Edit Mode: None" 
+        updateEditText()
     };
 
     link = document.getElementById('b_del_star');
     link.onclick = (event) => {
         console.log("Star Modifier")
         edit_mode = 1;
-        mode_text.innerHTML = "Edit Mode: Modify Star"
-        
-        updateButtons()
+        updateEditText()
     };
 
     link = document.getElementById('b_add_star');
     link.onclick = (event) => {
         console.log("Add Star")
         edit_mode = 2;
-        mode_text.innerHTML = "Edit Mode: Add Star"
-
-        updateButtons()
+        updateEditText()
     };
 
     link = document.getElementById('b_del_lane');
     link.onclick = (event) => {
         console.log("Delete Lane")
         edit_mode = 3;
-        mode_text.innerHTML = "Edit Mode: Delete Lane"
-
-        updateButtons()
+        updateEditText()
     };
 
     link = document.getElementById('b_add_lane');
     link.onclick = (event) => {
         console.log("Add Lane")
         edit_mode = 4;
-        mode_text.innerHTML = "Edit Mode: Add Lane"
-
-        updateButtons()
+        updateEditText()
     };
 
     updateButtons()
+
+    document.getElementById("clear_1").onclick = (event) => {
+        selection1 = undefined
+        document.getElementById("selected_item_1").innerHTML = ""
+    }
+    document.getElementById("clear_2").onclick = (event) => {
+        selection2 = undefined
+        document.getElementById("selected_item_2").innerHTML = ""
+    }    
 }
 
 document.addEventListener('DOMContentLoaded', canvasSetup)

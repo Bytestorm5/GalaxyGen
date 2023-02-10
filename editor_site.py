@@ -7,12 +7,13 @@ import requests
 from flask_cors import CORS #comment this on deployment
 import numpy as np
 from PIL import Image
-from render import inverse_conversion, get_star_cells
+from render import pixel_conversion, inverse_conversion, get_star_cells
 import render as Renderer
 
 app = Flask(__name__, static_folder='')
 CORS(app)
-#input_image = Renderer.render()
+
+input_image = Renderer.render()
 #input_array = np.array(input_image) / 255
 
 def saveGalaxy(path = "galaxy.json", render = True):
@@ -35,7 +36,7 @@ def director():
 
 @app.route("/edit-galaxy")
 def edit_systems():
-    return render_template("edit_systems_new.html") 
+    return render_template("edit_systems.html") 
 
 @app.route("/edit-countries")
 def edit_nations():
@@ -51,9 +52,10 @@ def view_resources():
 
 @app.route("/api/getMask")
 def getMask():
-    x = int(request.args.get('x'))
-    y = int(request.args.get('y'))
-    return {'pixel':np.ndarray.tolist(input_image[y, x][::-1])}
+    x = float(request.args.get('x'))
+    y = float(request.args.get('y'))
+    coord = pixel_conversion((x, y), True)
+    return {'pixel':np.ndarray.tolist(input_image[int(coord[1]), int(coord[0])][::-1])}
 
 @app.route("/api/DeleteStar")
 def delStar():
