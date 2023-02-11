@@ -13,7 +13,7 @@ import render as Renderer
 app = Flask(__name__, static_folder='')
 CORS(app)
 
-input_image = Renderer.render()
+#input_image = Renderer.render()
 #input_array = np.array(input_image) / 255
 
 def saveGalaxy(path = "galaxy.json", render = True):
@@ -50,12 +50,12 @@ def view_systems():
 def view_resources():
     return render_template("view_resources.html") 
 
-@app.route("/api/getMask")
-def getMask():
-    x = float(request.args.get('x'))
-    y = float(request.args.get('y'))
-    coord = pixel_conversion((x, y), True)
-    return {'pixel':np.ndarray.tolist(input_image[int(coord[1]), int(coord[0])][::-1])}
+# @app.route("/api/getMask")
+# def getMask():
+#     x = float(request.args.get('x'))
+#     y = float(request.args.get('y'))
+#     coord = pixel_conversion((x, y), True)
+#     return {'pixel':np.ndarray.tolist(input_image[int(coord[1]), int(coord[0])][::-1])}
 
 @app.route("/api/DeleteStar")
 def delStar():

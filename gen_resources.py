@@ -55,7 +55,7 @@ def gen_resources(resources, galaxy):
         
         in_systems = seed_systems.copy()
 
-        [indices.remove(sys) for sys in in_systems]
+        [indices.remove(sys) if sys in indices else "" for sys in in_systems]
 
         print(f"Creating Clusters for Resource {resource['name']}")
         i = 1

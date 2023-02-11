@@ -76,13 +76,14 @@ async function getVoronoi(star_set) {
 
 async function saveGalaxy() {
     //Do not include voronoi in output file
-    voronoi = galaxy.voronoi
-    delete galaxy.voronoi
+    var galaxy_out = JSON.parse(JSON.stringify(galaxy)) //Deep copy
+    voronoi = galaxy_out.voronoi
+    delete galaxy_out.voronoi
 
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
 
-    var raw = JSON.stringify(galaxy);
+    var raw = JSON.stringify(galaxy_out);
 
     var requestOptions = {
         method: 'POST',
@@ -240,11 +241,19 @@ async function canvasSetup() {
             }
         });
 
+        if (edit_mode == 4 && selection1 != null && selection2 != null && selection1[1][0] == 255 && selection2[1][0] == 255) {
+            drawLine(selection1[3][0] * SCALE, selection1[3][1] * SCALE, selection2[3][0] * SCALE, selection2[3][1] * SCALE, 'green', 0.2 * SCALE, -1)
+        }
+
         galaxy.stars.forEach(function (element, i) {
             if (element[0] >= 0 && element[1] >= 0) {
                 drawCircle(ctx, element[0] * SCALE, element[1] * SCALE, 0.1 * SCALE, 'white', 'white', 1, i)
             }                        
-        });          
+        });      
+        
+        if (edit_mode == 1 && selection1 != null && selection1[1][0] == 0) {
+            drawCircle(ctx, selection1[3][0] * SCALE, selection1[3][1] * SCALE, 0.1 * SCALE, 'green', 'green', 1, -1)
+        }
         
         if (view_mode != 0) {
             let regions = view_mode == 2 ? galaxy["ownership"] : galaxy["resources"]
@@ -280,7 +289,7 @@ async function canvasSetup() {
         if (fill) {
             ctx.fillStyle = fill  
 
-            if (selection1 != null && selection1[1][2] == i && selection1[1][0] == 255) {
+            if (selection1 != null && selection1[2] == i && selection1[1][0] == 255) {
                 if (edit_mode == 4) {
                     ctx.fillStyle = 'rgb(43, 183, 198)'
                 }
@@ -288,7 +297,7 @@ async function canvasSetup() {
                     ctx.fillStyle = 'rgb(198, 43, 43)'
                 }
             }
-            if (edit_mode == 4 && selection2 != null && selection2[1][2] == i && selection2[1][0] == 255) {
+            if (edit_mode == 4 && selection2 != null && selection2[2] == i && selection2[1][0] == 255) {
                 ctx.fillStyle = 'rgb(43, 183, 198)'
             }        
 

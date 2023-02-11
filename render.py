@@ -90,15 +90,18 @@ def render():
     print("Writing Mask and Geography Maps")
     cv2.imwrite("output_mask.png", output_mask)
 
+    print("--- Draw Resources ---")
+    print("Loading Resource & Country Data...")
+    resource_data = json.load(open("resources.json"))           
+    country_data = json.load(open("countries.json"))   
+
     output_raw = output_image.copy()
     cv2.imwrite("output_raw.png", output_raw)    
     if "resources" in galaxy and len(galaxy["resources"]) > 0:
-        print("--- Draw Resources ---")
         print("Cacheing Star Regions...")
         regions_cache = get_star_cells([pixel_conversion(star) for star in galaxy['stars']])
         ### Render Countries
-        print("Loading Resource Data...")
-        resource_data = json.load(open("resources.json"))           
+        
         
         print("Generating Galaxy Bounds...")
         density = cv2.resize(cv2.cvtColor(cv2.imread("Distribution.png"), cv2.COLOR_BGR2GRAY), tuple(np.array(SIZE) * int(SCALE)))
@@ -107,22 +110,83 @@ def render():
         galaxy_mask = cv2.medianBlur(galaxy_mask, 39)
         
         #Country Overlay layer
-        mask = output_raw
-        print("Generating Reource Overlay...")
+        mask = output_raw.copy()
+        print("Generating Resource Overlay...")
         for resource in galaxy["resources"]:
-            print(f"- Drawing Resource {resource_data[resource['id']]['name']}")
-            owner_color = resource_data[resource['id']]['color']
+            print(f"- Drawing Resource {resource_data[int(resource['id'])]['name']}")
+            resource_color = resource_data[int(resource['id'])]['color']
             for star in resource['systems']:
+                region = regions_cache[star]
+                mask = cv2.fillPoly(mask, np.int32([region]), (resource_color[2], resource_color[1], resource_color[0]))
+                mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * resource_color[2], 0.45 * resource_color[1], 0.45 * resource_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
+        print("Applying Mask...")
+        mask = cv2.bitwise_and(mask, galaxy_mask)
+        #mask = cv2.medianBlur(mask, 149)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
+        output_resources = cv2.addWeighted(output_raw, 0.5, mask, 0.5, 0)
+
+        #Country Overlay layer
+        mask = output_raw.copy()
+        print("Generating Country Overlay...")
+        for owner in galaxy["ownership"]:
+            print(f"- Drawing Country {country_data[int(owner['id'])]['name']}")
+            owner_color = country_data[int(owner['id'])]['color']
+            for star in owner['systems']:
                 region = regions_cache[star]
                 mask = cv2.fillPoly(mask, np.int32([region]), (owner_color[2], owner_color[1], owner_color[0]))
                 mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
         print("Applying Mask...")
         mask = cv2.bitwise_and(mask, galaxy_mask)
         #mask = cv2.medianBlur(mask, 149)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
-        output_image = cv2.addWeighted(output_image, 0.5, mask, 0.5, 0)
-    print("--- Finalizing ---\nWriting Image...")
-    cv2.imwrite("output.png", output_image)
+        output_countries = cv2.addWeighted(output_raw, 0.5, mask, 0.5, 0)
+    print("--- Finalizing Galaxy ---\nWriting Images...")
+    cv2.imwrite("output_resources.png", output_resources)
+    cv2.imwrite("output.png", output_countries)
     print("Render complete.")
+
+    print("--- Creating Legends ---")
+    
+    def create_legend(systems, data, filename):
+        print(f"[{filename}]: Text Size Pass")
+        max_width = 0
+        max_height = 0
+        for region in systems:
+            info = data[int(region['id'])]
+            (label_width, label_height), baseline = cv2.getTextSize(info['name'], cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+
+            if label_width > max_width:
+                max_width = label_width
+            if (label_height + baseline) > max_height:
+                max_height = label_height + baseline
+        
+        padding = 5
+        print(f"[{filename}]: Creating Legend Image...")
+        legend = np.array(Image.new("RGB", [max_width + 30, padding + len(systems) * (max_height + padding)]))
+        legend = legend[:, :, ::-1].copy()     
+
+        text_x = 30
+        text_y = max_height #+ padding
+
+        print(f"[{filename}]: Drawing {len(systems)} Legend Items")
+        for region in systems:
+            info = data[int(region['id'])]        
+
+            #Calculating this again for the baseline
+            (label_width, label_height), baseline = cv2.getTextSize(info['name'], cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            
+            legend = cv2.putText(legend, info['name'], (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            
+            start_point = (5, text_y - 20)
+            end_point = (25, text_y)
+            legend = cv2.rectangle(legend, start_point, end_point, tuple(reversed(info['color'])), -1)
+            legend = cv2.rectangle(legend, start_point, end_point, (127, 127, 127), 2)
+
+            text_y += padding + max_height
+
+        cv2.imwrite(filename, legend)
+
+    create_legend(galaxy['resources'], resource_data, "resource_legend.png")
+    create_legend(galaxy['ownership'], country_data, "country_legend.png")
+
     return output_mask
 
 if __name__ == "__main__":
