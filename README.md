@@ -87,14 +87,13 @@ TBD
  - [x] Place Stars & Hyperlanes based on Density Map
  - [x] Galaxy Renderer
  - [x] Geography Editor GUI
- - [ ] Country Renderer
- - [ ] Country Editor GUI
- - [ ] Resource Generation
+ - [x] Country Renderer
+ - [x] Country Editor GUI
+ - [x] Resource Generation
  - [ ] Render Style Presets (Dark, Light, Stellaris, etc)
  - [ ] Config File
 
 **Architecture:**
- - [ ] Move to Local Application
  - [ ] Compile to Executable Binaries
 
 ## Disclaimer for people better than me at programming
