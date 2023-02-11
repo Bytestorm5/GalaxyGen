@@ -1,0 +1,80 @@
+[
+    {
+        "name": "Vesteeva",
+        "color": [48, 96, 48],
+        "centricity": 0,
+        "rarity": 0
+    },
+    {
+        "name":"Superdiamonds",
+        "color": [143, 0, 27],
+        "centricity": -0.85,
+        "rarity": 0.1
+    },
+    {
+        "name":"Kyber Crystals",
+        "color": [255, 0, 0],
+        "centricity": 0,
+        "rarity": 0.2
+    },
+    {
+        "name":"Faecium",
+        "color": [130, 66, 27],
+        "centricity":0,
+        "rarity": 0.2
+    },
+    {
+        "name":"Prometheum",
+        "color":[219, 163, 129],
+        "centricity": 0,
+        "rarity": 0.5
+    },
+    {
+        "name":"Ambrosia",
+        "color":[235, 135, 255],
+        "centricity":0,
+        "rarity": 0.5
+    },
+    {
+        "name":"Neurocyte",
+        "color":[208, 234, 168],
+        "centricity":0,
+        "rarity":0.5
+    },
+    {
+        "name":"Creolite",
+        "color":[46, 140, 135],
+        "centricity":0,
+        "rarity": 0.85
+    },
+    {
+        "name":"Manachaeite",
+        "color":[135, 135, 135],
+        "centricity":0,
+        "rarity": 0.8
+    },
+    {
+        "name":"Sental",
+        "color":[62, 201, 194],
+        "centricity":0,
+        "rarity": 0.9
+    },
+    {
+        "name":"Dark Crystals",
+        "color":[114, 33, 120],
+        "centricity":-0.5,
+        "rarity": 0.9
+    },
+    {
+        "name":"Sage",
+        "color":[95, 216, 158],
+        "centricity":0.25,
+        "rarity": 0.7
+    },
+    {
+        "name":"Primordial Shard",
+        "color":[255, 153, 1],
+        "centricity":0,
+        "rarity": 1
+    }
+]

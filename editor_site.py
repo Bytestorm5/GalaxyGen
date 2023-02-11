@@ -7,12 +7,13 @@ import requests
 from flask_cors import CORS #comment this on deployment
 import numpy as np
 from PIL import Image
-from render import inverse_conversion
+from render import pixel_conversion, inverse_conversion, get_star_cells
 import render as Renderer
 
 app = Flask(__name__, static_folder='')
 CORS(app)
-input_image = Renderer.render()
+
+#input_image = Renderer.render()
 #input_array = np.array(input_image) / 255
 
 def saveGalaxy(path = "galaxy.json", render = True):
@@ -49,11 +50,12 @@ def view_systems():
 def view_resources():
     return render_template("view_resources.html") 
 
-@app.route("/api/getMask")
-def getMask():
-    x = int(request.args.get('x'))
-    y = int(request.args.get('y'))
-    return {'pixel':np.ndarray.tolist(input_image[y, x][::-1])}
+# @app.route("/api/getMask")
+# def getMask():
+#     x = float(request.args.get('x'))
+#     y = float(request.args.get('y'))
+#     coord = pixel_conversion((x, y), True)
+#     return {'pixel':np.ndarray.tolist(input_image[int(coord[1]), int(coord[0])][::-1])}
 
 @app.route("/api/DeleteStar")
 def delStar():
@@ -105,6 +107,28 @@ def addLane():
         galaxy['hyperlanes'].append(lane)
         saveGalaxy()
     return f"Successfully Connected Stars {id1} and {id2}"
+
+@app.route("/api/GetCells", methods=['POST'])
+def getCells():
+    if request.content_type == "application/json":
+        stars = request.json
+        regions = get_star_cells(stars)
+        return json.dumps(regions)
+    else:
+        return "Invalid Request Type!"
+
+@app.route("/api/SaveGalaxy", methods=['POST'])
+def save_galaxy():
+    if request.content_type == "application/json":
+        galaxy = request.json
+        json.dump(galaxy, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
+            separators=(',', ':'), 
+            sort_keys=True, 
+            indent=4)
+        return "Successfully Saved"
+    else:
+        return "Invalid Request Type!"
+
 
 if __name__ == '__main__':    
     #pgcr_thread = subprocess.run(['python', 'PGCRscanner.py'], capture_output=True, text=True, check=True)
