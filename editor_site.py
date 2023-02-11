@@ -117,6 +117,19 @@ def getCells():
     else:
         return "Invalid Request Type!"
 
+@app.route("/api/SaveGalaxy", methods=['POST'])
+def save_galaxy():
+    if request.content_type == "application/json":
+        galaxy = request.json
+        json.dump(galaxy, codecs.open("galaxy.json", 'w', encoding='utf-8'), 
+            separators=(',', ':'), 
+            sort_keys=True, 
+            indent=4)
+        return "Successfully Saved"
+    else:
+        return "Invalid Request Type!"
+
+
 if __name__ == '__main__':    
     #pgcr_thread = subprocess.run(['python', 'PGCRscanner.py'], capture_output=True, text=True, check=True)
     #CORS(app) #comment this on deployment

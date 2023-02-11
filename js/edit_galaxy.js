@@ -52,33 +52,6 @@ function updateEditText() {
     updateButtons()
 }
 
-async function get_mask(x, y) {
-    var requestOptions = {
-        method: 'GET',
-        redirect: 'follow'
-    };
-
-    //var raw;
-    
-    return await fetch(`/api/getMask?x=${x}&y=${y}`, requestOptions)
-    .then(response => response.text())
-    .then(result => {
-        console.log(result)
-        var raw = JSON.parse(result)['pixel']
-        if (raw[0] != 0) {
-            var out = raw[0] == 255 ? "Star " : "Lane ";                    
-            var id = raw[1]
-            id += raw[2] * 255
-            out += `${id} (${Math.round(x)}, ${Math.round(y)})`
-            return [out, raw, id, [x, y]]
-        }     
-        else {
-            return ["Background", [0, 0, 0], -1, [Math.round(x), Math.round(y) ]]
-        }
-    })
-    .catch(error => console.log('error', error));             
-}
-
 async function getVoronoi(star_set) {
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
@@ -101,19 +74,37 @@ async function getVoronoi(star_set) {
     .catch(error => console.log('error', error));
 }
 
-function saveGalaxy() {
+async function saveGalaxy() {
     //Do not include voronoi in output file
     voronoi = galaxy.voronoi
     delete galaxy.voronoi
 
-    var fs = require('fs');
-    fs.writeFile("galaxy.json", galaxy, function(err) {
-        if (err) {
-            console.log(err);
-        }
-    });
+    var myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
+    var raw = JSON.stringify(galaxy);
+
+    var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: raw,
+        redirect: 'follow'
+    };
+
+    await fetch("/api/SaveGalaxy", requestOptions)
+    .then(response => response.text())
+    .then(result => console.log(result))
+    .catch(error => console.log('error', error));
+
     //Restore voronoi for renderer
-    galaxy['voronoi'] = voronoi
+    //galaxy['voronoi'] = voronoi
+    await getVoronoi(galaxy['stars'])
+
+    selection1 = undefined
+    document.getElementById("selected_item_1").innerHTML = ""
+
+    selection2 = undefined
+    document.getElementById("selected_item_2").innerHTML = ""
 }
 
 function pnpoly( nvert, vertx, verty, testx, testy ) { 
@@ -143,7 +134,36 @@ function searchRegionForSystem(active_regions, file, x, y) {
             ys = region.map(x => x[1] * SCALE)
 
             if (pnpoly(region.length, xs, ys, x, y)) {
-                selected_region = j
+                selected_region = region_instance['systems'][j]
+            }
+            j++
+        }
+        if (selected_region != -1) {
+            //Found Valid Region
+            return {
+                "instance": region_instance,
+                "instance_index": i,
+                "selected_region": j
+            }
+        }
+    }
+    return {
+        "instance": null,
+        "instance_index": -1,
+        "selected_region": null
+    }
+}
+
+function searchRegionForSystem(active_regions, file, idx) {
+    for (var i = 0; i < active_regions.length; i++) {
+        region_instance = active_regions[i]
+        data = file[region_instance['id']]
+
+        selected_region = -1
+        j = 0
+        while (j < region_instance['systems'].length && selected_region == -1) {
+            if (region_instance['systems'][j] == idx) {
+                selected_region = idx
             }
             j++
         }
@@ -258,12 +278,38 @@ async function canvasSetup() {
         ctx.arc(x, y, radius, 0, 2 * Math.PI, false)
 
         if (fill) {
-            ctx.fillStyle = fill
+            ctx.fillStyle = fill  
+
+            if (selection1 != null && selection1[1][2] == i && selection1[1][0] == 255) {
+                if (edit_mode == 4) {
+                    ctx.fillStyle = 'rgb(43, 183, 198)'
+                }
+                else if (edit_mode == 2) {
+                    ctx.fillStyle = 'rgb(198, 43, 43)'
+                }
+            }
+            if (edit_mode == 4 && selection2 != null && selection2[1][2] == i && selection2[1][0] == 255) {
+                ctx.fillStyle = 'rgb(43, 183, 198)'
+            }        
+
             ctx.fill()
         }
         if (stroke) {
             ctx.lineWidth = strokeWidth
             ctx.strokeStyle = stroke
+
+            if (selection1 != null && selection1[2] == i && selection1[1][0] == 255) {
+                if (edit_mode == 4) {
+                    ctx.strokeStyle = 'rgb(43, 183, 198)'
+                }
+                else if (edit_mode == 2) {
+                    ctx.strokeStyle = 'rgb(196, 163, 0)'
+                }
+            }
+            if (edit_mode == 4 && selection2 != null && selection2[2] == i && selection2[1][0] == 255) {
+                ctx.strokeStyle = 'rgb(43, 183, 198)'
+            } 
+
             ctx.stroke()
         }
     }
@@ -274,6 +320,10 @@ async function canvasSetup() {
 
         ctx.lineWidth = width
         ctx.strokeStyle = color
+
+        if (edit_mode == 3 && selection1 != null && selection1[1][0] == 127 && selection1[2] == i) {
+            ctx.strokeStyle = 'rgb(198, 43, 43)'
+        }
 
         ctx.stroke(); 
     }
@@ -388,6 +438,22 @@ async function canvasSetup() {
         return ctx.getTransform().invertSelf().transformPoint(originalPoint);
     } 
     
+    function dot_product(ax, ay, bx, by) {
+        return (ax * bx) + (ay * by)
+    }
+    function cross_product(ax, ay, bx, by) {
+        return (ax * by) - (ay * bx)
+    }
+    function normalize(x, y) {
+        len = Math.sqrt(x*x + y*y)
+        return [[x/len, y/len], len]
+    }
+    function triangle_area(ax, ay, bx, by, cx, cy) {
+        out_val = ax * (bx - cx)
+        out_val += bx * (cx - ax)
+        out_val += cx * (ax - bx)
+        return 0.5 * out_val
+    }
     async function handleClick(e) { 
         mouse = getTransformedPoint(getEventLocation(e).x, getEventLocation(e).y)
         mouseX = mouse.x
@@ -410,24 +476,88 @@ async function canvasSetup() {
             }
         }
         else if (edit_mode != 0) {
-            //console.log(`${mouseX / SCALE}, ${mouseY / SCALE}`)
-            maskPoint = await get_mask(mouseX / SCALE, mouseY / SCALE)
-            console.log(maskPoint)
+            galaxy_point = new DOMPoint(mouseX / SCALE, mouseY / SCALE)
+            maskPoint = undefined;
             
+            if (edit_mode != 3) {
+                clicked_star = -1
+                for (let i = 0; i < galaxy.stars.length; i++) {
+                    element = galaxy.stars[i]
+                    if (element[0] >= 0 && element[1] >= 0) {
+                        r = 0.4
+                        xdist = element[0] - (galaxy_point.x)
+                        ydist = element[1] - (galaxy_point.y)
+                        dist = Math.sqrt(xdist*xdist + ydist*ydist)   
+                                              
+                        if (dist <= r) {
+                            clicked_star = i
+                            break
+                        }                                            
+                    }   
+                }                
+                if (clicked_star == -1) {
+                    maskPoint = [`Background (${Math.round(galaxy_point.x)}, ${Math.round(galaxy_point.y)})`, [0, 0, 0], -1, [Math.round(galaxy_point.x), Math.round(galaxy_point.y)]]
+                }
+                else {
+                    b_val = Math.floor(clicked_star / 255)
+                    g_val = clicked_star % 255
+                    star = galaxy.stars[clicked_star]
+                    maskPoint = [`Star ${clicked_star} (${Math.round(galaxy_point.x)}, ${Math.round(galaxy_point.y)})`, [255, g_val, b_val], clicked_star, [Math.round(galaxy_point.x), Math.round(galaxy_point.y)]]
+                }
+            }
+            else {
+                clicked_lane = -1
+                min_dist = 1999
+                min_i = -1
+                for (let i = 0; i < galaxy.hyperlanes.length; i++) {
+                    element = galaxy.hyperlanes[i]
+                    a = galaxy.stars[element[0]]
+                    b = galaxy.stars[element[1]]
+                    if (a[0] >= 0 && a[1] >= 0 && b[0] >= 0 && b[1] >= 0) {
+                        w = 0.3
+
+                        ap = normalize(galaxy_point.x - a[0], galaxy_point.y - a[1])
+                        bp = normalize(galaxy_point.x - b[0], galaxy_point.y - b[1])
+                        ab = normalize(b[0] - a[0], b[1] - a[1])
+
+                        limit = Math.sqrt((ab[1] * ab[1]) + (w * w)) / ab[1]
+
+                        dist = (ap[1] + bp[1]) / (ab[1])
+
+                        if (dist <= 1 && triangle_area(a[0], a[1], b[0], b[1], c[0], c[1]) == 0) {
+                            console.log(`${i} is co-linear`)
+                        }
+
+                        if (dist <= min_dist) {
+                            min_dist = dist
+                            min_i = i
+                            clicked_lane = i
+                        }
+                    }   
+                }
+                console.log("Minimum Distance Lane")
+                console.log(`${min_i} -> ${min_dist}`)
+                if (clicked_lane == -1) {
+                    maskPoint = [`Background (${Math.round(galaxy_point.x)}, ${Math.round(galaxy_point.y)})`, [0, 0, 0], -1, [Math.round(galaxy_point.x), Math.round(galaxy_point.y)]]
+                }
+                else {
+                    b_val = Math.floor(clicked_lane / 255)
+                    g_val = clicked_lane % 255
+                    maskPoint = [`Lane ${clicked_lane} (${Math.round(galaxy_point.x)}, ${Math.round(galaxy_point.y)})`, [127, g_val, b_val], clicked_lane, [Math.round(galaxy_point.x), Math.round(galaxy_point.y)]]
+                }
+            }
+            console.log(maskPoint)
             //1 = Add Star          
             if (edit_mode == 1 && maskPoint[1][0] == 0) {
-                selection1 = maskPoint
-                updateButtons()
+                selection1 = maskPoint                
             }
             //2 = Modify Star
-            else if (edit_mode == 2 && maskPoint[1][0] == 255) {
+            else if (edit_mode == 2) {
                 selection1 = maskPoint
-                updateButtons()
             }
             //3 = Delete Lane
             else if (edit_mode == 3 && maskPoint[1][0] == 127) {
                 selection1 = maskPoint
-                updateButtons()
             }
             //4 = Add Lane
             else if (edit_mode == 4 && maskPoint[1][0] == 255) {
@@ -441,12 +571,12 @@ async function canvasSetup() {
                     selection2 = maskPoint
                     document.getElementById("selected_item_2").innerHTML = `Selected: ${maskPoint[0]}`
                 }
-                updateButtons()
             }     
 
             if (edit_mode != 4) {
                 document.getElementById("selected_item_1").innerHTML = `Selected: ${maskPoint[0]}`
             }
+            updateButtons()
         }
     }
 
@@ -460,7 +590,63 @@ async function canvasSetup() {
         else if (edit_mode == 2 && maskPoint[1][0] == 255) {
             resource_dropdown = document.getElementById("resource_dropdown")
             owner_dropdown = document.getElementById("owner_dropdown")
-            console.log(`R: ${resource_dropdown.value} | C: ${owner_dropdown.value}`)
+
+            console.log(`SET ${maskPoint[2]} -- R: ${resource_dropdown.value} | C: ${owner_dropdown.value}`)
+
+            //i is initialized outside the loop so that it's marginally easier to determine if either resources/ownership dicts are empty
+            i = 0
+            for (; i < galaxy.resources.length; i++) {
+                region_instance = galaxy.resources[i]
+                if (resource_dropdown.value != region_instance['id']) {
+                    region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
+                }
+                else if (!region_instance['systems'].includes(maskPoint[2])) {
+                    region_instance['systems'].push(maskPoint[2])
+                }
+                galaxy.resources[i] = region_instance
+            }
+
+            if (i < resource_dropdown.value) {
+                //Generate all resource dicts up to the current resource
+                for (; i < resource_dropdown.value; i++) {
+                    galaxy.resources.push({
+                        'id':i,
+                        systems: []
+                    })
+                }
+                //Add the resource being set w/ the relevant system
+                galaxy.resources.push({
+                    'id':resource_dropdown.value,
+                    systems: [maskPoint[2]]
+                })
+            }
+
+            i = 0
+            for (; i < galaxy.ownership.length; i++) {
+                region_instance = galaxy.ownership[i]
+                if (owner_dropdown.value != region_instance['id']) {
+                    region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
+                }
+                else if (!region_instance['systems'].includes(maskPoint[2])) {
+                    region_instance['systems'].push(maskPoint[2])
+                }
+                galaxy.ownership[i] = region_instance
+            }
+
+            if (i < owner_dropdown.value) {
+                //Generate all owner dicts up to the current owner
+                for (; i < owner_dropdown.value; i++) {
+                    galaxy.ownership.push({
+                        'id':i,
+                        systems: []
+                    })
+                }
+                //Add the owner being set w/ the relevant system
+                galaxy.ownership.push({
+                    'id':owner_dropdown.value,
+                    systems: [maskPoint[2]]
+                })
+            }
         }
         //3 = Delete Lane
         else if (edit_mode == 3 && maskPoint[1][0] == 127) {
@@ -549,7 +735,7 @@ function updateButtons() {
         resource_dropdown = document.getElementById("resource_dropdown")
         owner_dropdown = document.getElementById("owner_dropdown")
         
-        if (selection1 != null) {
+        if (selection1 != null && selection1[1][0] == 255) {
             resource_dropdown.innerHTML = "<option value=\"-1\">No Resources</option>"
             owner_dropdown.innerHTML = "<option value=\"-1\">Unclaimed System</option>"
 
@@ -561,8 +747,8 @@ function updateButtons() {
                 owner_dropdown.innerHTML += `<option value=\"${i}\">${element["name"]}</option>`
             })
 
-            resource_dropdown.value = searchRegionForSystem(galaxy.resources, resources, selection1[3][0], selection1[3][1])["instance_index"]
-            owner_dropdown.value = searchRegionForSystem(galaxy.ownership, countries)["instance_index"]  
+            resource_dropdown.value = searchRegionForSystem(galaxy.resources, resources, selection1[2])["instance_index"]
+            owner_dropdown.value = searchRegionForSystem(galaxy.ownership, countries, selection1[2])["instance_index"]  
         }      
         else {
             resource_dropdown = document.getElementById("resource_dropdown")
@@ -582,19 +768,19 @@ async function toolbarSetup() {
         updateEditText()
     };
 
-    link = document.getElementById('b_del_star');
+    link = document.getElementById('b_add_star');
     link.onclick = (event) => {
-        console.log("Star Modifier")
+        console.log("Add Star")
         edit_mode = 1;
         updateEditText()
     };
 
-    link = document.getElementById('b_add_star');
+    link = document.getElementById('b_del_star');
     link.onclick = (event) => {
-        console.log("Add Star")
+        console.log("Star Modifier")
         edit_mode = 2;
         updateEditText()
-    };
+    };    
 
     link = document.getElementById('b_del_lane');
     link.onclick = (event) => {
@@ -620,6 +806,7 @@ async function toolbarSetup() {
         selection2 = undefined
         document.getElementById("selected_item_2").innerHTML = ""
     }    
+    document.getElementById("save_button").onclick = saveGalaxy
 }
 
 document.addEventListener('DOMContentLoaded', canvasSetup)
