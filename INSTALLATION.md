@@ -5,7 +5,7 @@ Just download the source and set up a virtual environment using `requirements.tx
 ## If you are not:
 1. [Download Python](https://www.python.org/downloads/). Make sure to select the "Add to PATH" option during installation.
 
-2. Download the Repository from the [Releases](https://github.com/Bytestorm5/GalaxyGen/releases/tag/Release) page.
+2. Download the Repository from the [Releases](https://github.com/Bytestorm5/GalaxyGen/releases) page.
 
 3. Unzip the file into whatever folder you like
 
