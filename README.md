@@ -97,8 +97,6 @@ TBD
  - [ ] Compile to Executable Binaries
 
 ## Disclaimer for people better than me at programming
-This is nowhere near optimized code, and there's almost certainly room for improvement. 
+This is nowhere near optimized code, and there's almost certainly room for improvement.
 
-The reason this is set up as a locally-hosted site is so that I can easily run `render.py` and update the map using Flask, while being able to easily create a frontend using Html/JS. This almost certainly isn't the best approach but it's the one I was most familiar with. 
-
-Since this is on GitHub, if you have a problem with how something works feel free to fix it via a Pull Request, Fork, etc etc.
+If you have a problem with how something works feel free to fix it via a Pull Request, Fork, etc etc. I'll be glad to look at it and learn from the improvements you make.
