@@ -341,7 +341,9 @@ async function canvasSetup() {
         ctx.beginPath()
         ctx.moveTo(points[0][0] * SCALE, points[0][1] * SCALE)
         points.forEach(p => {
-            ctx.lineTo(p[0] * SCALE, p[1] * SCALE)
+            if (p[0] != -1 && p[1] != -1) {
+                ctx.lineTo(p[0] * SCALE, p[1] * SCALE)
+            }
         })
         ctx.closePath()
 
@@ -606,7 +608,7 @@ async function canvasSetup() {
             i = 0
             for (; i < galaxy.resources.length; i++) {
                 region_instance = galaxy.resources[i]
-                if (resource_dropdown.value != region_instance['id']) {
+                if (parseInt(resource_dropdown.value) != parseInt(region_instance['id'])) {
                     region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
                 }
                 else if (!region_instance['systems'].includes(maskPoint[2])) {
@@ -615,9 +617,9 @@ async function canvasSetup() {
                 galaxy.resources[i] = region_instance
             }
 
-            if (i < resource_dropdown.value) {
+            if (i <= parseInt(resource_dropdown.value)) {
                 //Generate all resource dicts up to the current resource
-                for (; i < resource_dropdown.value; i++) {
+                for (; i < parseInt(resource_dropdown.value); i++) {
                     galaxy.resources.push({
                         'id':i,
                         systems: []
@@ -625,7 +627,7 @@ async function canvasSetup() {
                 }
                 //Add the resource being set w/ the relevant system
                 galaxy.resources.push({
-                    'id':resource_dropdown.value,
+                    'id':parseInt(resource_dropdown.value),
                     systems: [maskPoint[2]]
                 })
             }
@@ -633,7 +635,7 @@ async function canvasSetup() {
             i = 0
             for (; i < galaxy.ownership.length; i++) {
                 region_instance = galaxy.ownership[i]
-                if (owner_dropdown.value != region_instance['id']) {
+                if (parseInt(owner_dropdown.value) != parseInt(region_instance['id'])) {
                     region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
                 }
                 else if (!region_instance['systems'].includes(maskPoint[2])) {
@@ -642,9 +644,9 @@ async function canvasSetup() {
                 galaxy.ownership[i] = region_instance
             }
 
-            if (i < owner_dropdown.value) {
+            if (i <= parseInt(owner_dropdown.value)) {
                 //Generate all owner dicts up to the current owner
-                for (; i < owner_dropdown.value; i++) {
+                for (; i < parseInt(owner_dropdown.value); i++) {
                     galaxy.ownership.push({
                         'id':i,
                         systems: []
@@ -652,7 +654,7 @@ async function canvasSetup() {
                 }
                 //Add the owner being set w/ the relevant system
                 galaxy.ownership.push({
-                    'id':owner_dropdown.value,
+                    'id':parseInt(owner_dropdown.value),
                     systems: [maskPoint[2]]
                 })
             }

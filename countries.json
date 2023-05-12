@@ -1,10 +1,50 @@
 [
     {
         "name": "Alma Ruma",
-        "color": [255, 0, 255]
+        "color": [183, 50, 50]
     },
     {
-        "name": "Datlovia",
-        "color": [200, 0, 0]
+        "name": "GRG",
+        "color": [224, 173, 12]
+    },
+    {
+        "name": "Consortium",
+        "color": [38, 147, 194]
+    },
+    {
+        "name": "Atlas",
+        "color": [165, 96, 216]
+    },
+    {
+        "name": "Anblick",
+        "color": [102, 122, 175]
+    },
+    {
+        "name": "Ghaihealtachd",
+        "color": [233, 99, 99]
+    },
+    {
+        "name": "Hayfiylrir Imperium",
+        "color": [250, 206, 189]
+    },
+    {
+        "name": "Aquaevia",
+        "color": [134, 193, 162]
+    },
+    {
+        "name": "Kerbal Kind",
+        "color": [128, 102, 147]
+    },
+    {
+        "name": "Elemaria",
+        "color": [78, 105, 227]
+    },
+    {
+        "name": "Scaea",
+        "color": [135, 135, 29]
+    },
+    {
+        "name": "Gennisil",
+        "color": [106, 164, 36]
     }
 ]
