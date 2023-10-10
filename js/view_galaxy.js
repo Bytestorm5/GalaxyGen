@@ -96,13 +96,13 @@ async function canvasSetup() {
             s0 = galaxy.stars[element[0]]
             s1 = galaxy.stars[element[1]]
             if (s0[0] >= 0 && s0[1] >= 0 && s1[0] >= 0 && s1[1] >= 0) {
-                drawLine(s0[0] * SCALE, s0[1] * SCALE, s1[0] * SCALE, s1[1] * SCALE, 'gray', 0.2 * SCALE, i)
+                drawLine(s0[0] * SCALE, s0[1] * SCALE, s1[0] * SCALE, s1[1] * SCALE, 'gray', 0.2 * SCALE / (0.75*Math.sqrt(cameraZoom)), i)
             }
         });
 
         galaxy.stars.forEach(function (element, i) {
             if (element[0] >= 0 && element[1] >= 0) {
-                drawCircle(ctx, element[0] * SCALE, element[1] * SCALE, 0.1 * SCALE, 'white', 'white', 1, i)
+                drawCircle(ctx, element[0] * SCALE, element[1] * SCALE, 0.1 * SCALE / (0.75*Math.sqrt(cameraZoom)), 'white', 'white', 1, i)
             }                        
         });          
         

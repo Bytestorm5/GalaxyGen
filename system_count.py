@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     print()
     print(f"Total Stars: {len(galaxy['stars'])}")
-    print(f"Total Stars Occupied: {resource_systems}")
-    print(f"Total Stars w/ Resources: {country_systems}")
+    print(f"Total Stars Occupied: {country_systems}")
+    print(f"Total Stars w/ Resources: {resource_systems}")
     print()
     print("--- %s seconds ---" % (time.time() - start_time))

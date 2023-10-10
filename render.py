@@ -107,7 +107,7 @@ def render():
         density = cv2.resize(cv2.cvtColor(cv2.imread("Distribution.png"), cv2.COLOR_BGR2GRAY), tuple(np.array(SIZE) * int(SCALE)))
         _, galaxy_mask = cv2.threshold(density, 12, 255, cv2.THRESH_BINARY)
         galaxy_mask = cv2.cvtColor(galaxy_mask, cv2.COLOR_GRAY2BGR)
-        galaxy_mask = cv2.medianBlur(galaxy_mask, 39)
+        galaxy_mask = cv2.medianBlur(galaxy_mask, 29)
         
         #Country Overlay layer
         mask = output_raw.copy()
@@ -134,9 +134,9 @@ def render():
                 region = regions_cache[star]
                 mask = cv2.fillPoly(mask, np.int32([region]), (owner_color[2], owner_color[1], owner_color[0]))
                 mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
-        print("Applying Mask...")
-        mask = cv2.bitwise_and(mask, galaxy_mask)
+        print("Applying Mask...")        
         #mask = cv2.medianBlur(mask, 149)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
+        mask = cv2.bitwise_and(mask, galaxy_mask)
         output_countries = cv2.addWeighted(output_raw, 0.5, mask, 0.5, 0)
     print("--- Finalizing Galaxy ---\nWriting Images...")
     cv2.imwrite("output_resources.png", output_resources)

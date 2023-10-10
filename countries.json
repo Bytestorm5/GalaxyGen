@@ -1,26 +1,26 @@
 [
     {
-        "name": "Alma Ruma",
-        "color": [183, 50, 50]
+        "name": "Illmora",
+        "color": [209, 83, 152]
     },
     {
-        "name": "GRG",
+        "name": "Galactic Republic",
         "color": [224, 173, 12]
     },
     {
-        "name": "Consortium",
-        "color": [38, 147, 194]
+        "name": "Blank",
+        "color": [224, 173, 12]
     },
     {
         "name": "Atlas",
         "color": [165, 96, 216]
     },
     {
-        "name": "Anblick",
+        "name": "Anblick Anarchy Zone",
         "color": [102, 122, 175]
     },
     {
-        "name": "Ghaihealtachd",
+        "name": "Highlandic Empire",
         "color": [233, 99, 99]
     },
     {
@@ -28,11 +28,11 @@
         "color": [250, 206, 189]
     },
     {
-        "name": "Aquaevia",
+        "name": "Suldavia",
         "color": [134, 193, 162]
     },
     {
-        "name": "Kerbal Kind",
+        "name": "Protectorate of the Sun Children",
         "color": [128, 102, 147]
     },
     {
@@ -41,10 +41,10 @@
     },
     {
         "name": "Scaea",
-        "color": [135, 135, 29]
+        "color": [255, 104, 0]
     },
     {
-        "name": "Gennisil",
+        "name": "Gennisii",
         "color": [106, 164, 36]
     }
 ]

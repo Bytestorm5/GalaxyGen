@@ -47,6 +47,7 @@ function updateEditText() {
     if (edit_mode == 2) { modetext = "Modify Star" }
     if (edit_mode == 3) { modetext = "Delete Lane" }
     if (edit_mode == 4) { modetext = "Add Lane" }
+    if (edit_mode == 5) { modetext = "Paint Star" }
     console.log(`Edit Mode | ${edit_mode}: ${modetext}`)
     document.getElementById("edit_mode").innerHTML = `Edit: ${modetext}`
     updateButtons()
@@ -237,7 +238,7 @@ async function canvasSetup() {
             s0 = galaxy.stars[element[0]]
             s1 = galaxy.stars[element[1]]
             if (s0[0] >= 0 && s0[1] >= 0 && s1[0] >= 0 && s1[1] >= 0) {
-                drawLine(s0[0] * SCALE, s0[1] * SCALE, s1[0] * SCALE, s1[1] * SCALE, 'gray', 0.2 * SCALE, i)
+                drawLine(s0[0] * SCALE, s0[1] * SCALE, s1[0] * SCALE, s1[1] * SCALE, 'gray', 0.2 * SCALE / (0.75*Math.sqrt(cameraZoom)), i)
             }
         });
 
@@ -247,7 +248,7 @@ async function canvasSetup() {
 
         galaxy.stars.forEach(function (element, i) {
             if (element[0] >= 0 && element[1] >= 0) {
-                drawCircle(ctx, element[0] * SCALE, element[1] * SCALE, 0.1 * SCALE, 'white', 'white', 1, i)
+                drawCircle(ctx, element[0] * SCALE, element[1] * SCALE, 0.1 * SCALE / (0.75*Math.sqrt(cameraZoom)), 'white', 'white', 1, i)
             }                        
         });      
         
@@ -583,6 +584,12 @@ async function canvasSetup() {
                     document.getElementById("selected_item_2").innerHTML = `Selected: ${maskPoint[0]}`
                 }
             }     
+            // 5 = Paint
+            else if (edit_mode == 5 && maskPoint[1][0] == 255) {
+                selection1 = maskPoint
+                applyChanges()
+            }
+            
 
             if (edit_mode != 4) {
                 document.getElementById("selected_item_1").innerHTML = `Selected: ${maskPoint[0]}`
@@ -598,38 +605,39 @@ async function canvasSetup() {
             galaxy.stars.push(rounded_point)
         }
         //2 = Modify Star
-        else if (edit_mode == 2 && maskPoint[1][0] == 255) {
+        else if ((edit_mode == 2 || edit_mode == 5) && maskPoint[1][0] == 255) {
             resource_dropdown = document.getElementById("resource_dropdown")
             owner_dropdown = document.getElementById("owner_dropdown")
 
             console.log(`SET ${maskPoint[2]} -- R: ${resource_dropdown.value} | C: ${owner_dropdown.value}`)
-
-            //i is initialized outside the loop so that it's marginally easier to determine if either resources/ownership dicts are empty
-            i = 0
-            for (; i < galaxy.resources.length; i++) {
-                region_instance = galaxy.resources[i]
-                if (parseInt(resource_dropdown.value) != parseInt(region_instance['id'])) {
-                    region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
+            if (edit_mode == 2) {
+                //i is initialized outside the loop so that it's marginally easier to determine if either resources/ownership dicts are empty
+                i = 0
+                for (; i < galaxy.resources.length; i++) {
+                    region_instance = galaxy.resources[i]
+                    if (parseInt(resource_dropdown.value) != parseInt(region_instance['id'])) {
+                        region_instance['systems'] = region_instance['systems'].filter(function(e) { return e !== maskPoint[2] })
+                    }
+                    else if (!region_instance['systems'].includes(maskPoint[2])) {
+                        region_instance['systems'].push(maskPoint[2])
+                    }
+                    galaxy.resources[i] = region_instance
                 }
-                else if (!region_instance['systems'].includes(maskPoint[2])) {
-                    region_instance['systems'].push(maskPoint[2])
-                }
-                galaxy.resources[i] = region_instance
-            }
 
-            if (i <= parseInt(resource_dropdown.value)) {
-                //Generate all resource dicts up to the current resource
-                for (; i < parseInt(resource_dropdown.value); i++) {
+                if (i <= parseInt(resource_dropdown.value)) {
+                    //Generate all resource dicts up to the current resource
+                    for (; i < parseInt(resource_dropdown.value); i++) {
+                        galaxy.resources.push({
+                            'id':i,
+                            systems: []
+                        })
+                    }
+                    //Add the resource being set w/ the relevant system
                     galaxy.resources.push({
-                        'id':i,
-                        systems: []
+                        'id':parseInt(resource_dropdown.value),
+                        systems: [maskPoint[2]]
                     })
                 }
-                //Add the resource being set w/ the relevant system
-                galaxy.resources.push({
-                    'id':parseInt(resource_dropdown.value),
-                    systems: [maskPoint[2]]
-                })
             }
 
             i = 0
@@ -667,7 +675,7 @@ async function canvasSetup() {
         else if (edit_mode == 4 && maskPoint[1][0] == 255) {
             new_lane = [selection1[2], selection2[2]]
             galaxy.hyperlanes.push(new_lane)
-        }         
+        }   
     }
 
     document.getElementById("confirm_button").onclick = (event) => {
@@ -739,10 +747,10 @@ function updateButtons() {
     document.getElementById("clear_1").hidden = edit_mode != 4
     document.getElementById("clear_2").hidden = edit_mode != 4
     document.getElementById("selected_item_2").hidden = edit_mode != 4
-    document.getElementById("star_mod_menu").hidden = edit_mode != 2
-    document.getElementById("delete_button").hidden = edit_mode != 2
+    document.getElementById("star_mod_menu").hidden = !(edit_mode == 2 || edit_mode == 5)
+    document.getElementById("delete_button").hidden = !(edit_mode == 2 || edit_mode == 5)
     
-    if (edit_mode == 2) {
+    if (edit_mode == 2 || edit_mode == 5) {
         resource_dropdown = document.getElementById("resource_dropdown")
         owner_dropdown = document.getElementById("owner_dropdown")
         
@@ -804,6 +812,12 @@ async function toolbarSetup() {
     link.onclick = (event) => {
         console.log("Add Lane")
         edit_mode = 4;
+        updateEditText()
+    };    
+    link = document.getElementById('b_paint_star');
+    link.onclick = (event) => {
+        console.log("Paint Stars")
+        edit_mode = 5;
         updateEditText()
     };
 
