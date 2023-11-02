@@ -134,9 +134,9 @@ def render():
                 region = regions_cache[star]
                 mask = cv2.fillPoly(mask, np.int32([region]), (owner_color[2], owner_color[1], owner_color[0]))
                 mask = cv2.polylines(mask, np.int32([region]), True, (0.45 * owner_color[2], 0.45 * owner_color[1], 0.45 * owner_color[0]), int(STAR_SIZE*0.4), cv2.LINE_AA)
-        print("Applying Mask...")        
-        #mask = cv2.medianBlur(mask, 149)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
+        print("Applying Mask...")
         mask = cv2.bitwise_and(mask, galaxy_mask)
+        #mask = cv2.medianBlur(mask, 49)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
         output_countries = cv2.addWeighted(output_raw, 0.5, mask, 0.5, 0)
     print("--- Finalizing Galaxy ---\nWriting Images...")
     cv2.imwrite("output_resources.png", output_resources)
