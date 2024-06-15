@@ -14,7 +14,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     galaxy = json.load(open("galaxy.json"))
-
+    
     resources = json.load(open("resources.json"))
     resource_systems = 0
     print("-- RESOURCES --")

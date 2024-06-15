@@ -28,7 +28,7 @@
         "color": [250, 206, 189]
     },
     {
-        "name": "Suldavia",
+        "name": "Alma Ruma",
         "color": [134, 193, 162]
     },
     {
@@ -36,11 +36,11 @@
         "color": [128, 102, 147]
     },
     {
-        "name": "Elemaria",
-        "color": [78, 105, 227]
+        "name": "Scaea-Elemaria",
+        "color": [241, 62, 133]
     },
     {
-        "name": "Scaea",
+        "name": "PLACEHOLDER",
         "color": [255, 104, 0]
     },
     {
@@ -90,5 +90,25 @@
     {
         "name": "Ospium",
         "color": [99, 216, 154]
+    },
+    {
+        "name": "Naori",
+        "color": [7, 163, 102]
+    },
+    {
+        "name": "Tiladon",
+        "color": [216, 220, 52]
+    },
+    {
+        "name": "Cooperative Systems",
+        "color": [197, 172, 76]
+    },
+    {
+        "name": "Karolo Hivemind",
+        "color": [40, 251, 6]
+    },
+    {
+        "name": "Khesh",
+        "color": [238, 119, 251]
     }
 ]
