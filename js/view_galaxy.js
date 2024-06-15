@@ -72,25 +72,6 @@ async function canvasSetup() {
         ctx.scale(cameraZoom, cameraZoom)
         ctx.translate( -window.innerWidth / 2 + cameraOffset.x, -window.innerHeight / 2 + cameraOffset.y )
         ctx.clearRect(0,0, window.innerWidth, window.innerHeight)
-        // ctx.fillStyle = "#991111"
-        // drawRect(-50,-50,100,100)
-        
-        // ctx.fillStyle = "#eecc77"
-        // drawRect(-35,-35,20,20)
-        // drawRect(15,-35,20,20)
-        // drawRect(-35,15,70,20)
-        
-        // ctx.fillStyle = "#fff"
-        // drawText("Simple Pan and Zoom Canvas", -255, -100, 32, "courier")
-        
-        // ctx.rotate(-31*Math.PI / 180)
-        // ctx.fillStyle = `#${(Math.round(Date.now()/40)%4096).toString(16)}`
-        // drawText("Now with touch!", -110, 100, 32, "courier")
-        
-        // ctx.fillStyle = "#fff"
-        // ctx.rotate(31*Math.PI / 180)
-        
-        // drawText("Wow, you found me!", -260, -2000, 48, "courier")
 
         galaxy.hyperlanes.forEach(function (element, i) {
             s0 = galaxy.stars[element[0]]
