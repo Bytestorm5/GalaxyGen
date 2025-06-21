@@ -242,47 +242,18 @@ async function canvasSetup() {
         }
     }
 
-    // function pnpoly( nvert, verts, testx, testy ) {
-
-    //     vertx = (x) => verts[x][0]
-    //     verty = (x) => verts[x][1]
-
-    //     var i, j, c = false;
-    //     for( i = 0, j = nvert-1; i < nvert; j = i++ ) {
-    //         if ((( verty(i) > testy ) != ( verty(j) > testy ) ) &&
-    //             (testx < (vertx(j) - vertx(i)) * (testy - verty(i)) / (verty(j) - verty(i) + vertx(i)))) {
-    //                 c = !c;
-    //         }
-    //     }
-    //     return c;
-    // }
-
-    // function pnpoly( nvert, verts, testx, testy ) { 
-    //     vertx = (i) => verts[i][0]
-    //     verty = (i) => verts[i][1]
-    //     var i, j, c = false; 
-    //     for( i = 0, j = nvert-1; i < nvert; j = i++ ) { 
-    //         //alert( 'verty[i] - ' + verty[i] + ' testy - ' + testy + ' verty[j] - ' + verty[j] + ' testx - ' + testx); 
-    //         if(((verty(i) > testy ) != (verty(j) > testy)) && (testx < (vertx(j) - vertx(i)) * (testy - verty(i)) / (verty(j) - verty(i)) + vertx(i))) {
-    //              c = !c; 
-    //              alert('Condition true') 
-    //         } 
-    //     } 
-    //     return c; 
-    // }
-
+    
     function getTransformedPoint(x, y) {
         const originalPoint = new DOMPoint(x, y);
         return ctx.getTransform().invertSelf().transformPoint(originalPoint);
     } 
     
-function pnpoly( nvert, vertx, verty, testx, testy ) { 
-    var i, j, c = false;
-     for( i = 0, j = nvert-1; i < nvert; j = i++ ) {
-         //alert( 'verty[i] - ' + verty[i] + ' testy - ' + testy + ' verty[j] - ' + verty[j] + ' testx - ' + testx); 
-         if( ( ( verty[i] > testy ) != ( verty[j] > testy ) ) && ( testx < ( vertx[j] - vertx[i] ) * ( testy - verty[i] ) / ( verty[j] - verty[i] ) + vertx[i] ) ) {
-             c = !c; 
-             //alert('Condition true') 
+    function pnpoly( nvert, vertx, verty, testx, testy ) { 
+        var i, j, c = false;
+        for( i = 0, j = nvert-1; i < nvert; j = i++ ) {
+            if( ( ( verty[i] > testy ) != ( verty[j] > testy ) ) && ( testx < ( vertx[j] - vertx[i] ) * ( testy - verty[i] ) / ( verty[j] - verty[i] ) + vertx[i] ) ) {
+                c = !c; 
+                
             } 
         } 
         return c; 

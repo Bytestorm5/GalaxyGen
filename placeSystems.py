@@ -5,6 +5,7 @@ from PIL import Image
 import json, codecs
 from gen_resources import gen_resources
 import os
+from tqdm import tqdm
 
 if os.path.exists("galaxy.json"):
     exit_catch = input("There is already a \"galaxy.json\" file in this folder, which will be overwritten. Enter \"n\" to exit, or press any other key to continue.")
@@ -16,25 +17,21 @@ system_count = int(input("Enter the amount of systems you want to generate: "))
 
 input_image = Image.open("Distribution.png")
 input_array = np.array(input_image) / 255
-#real_image = Image.new("RGB", input_image.size)
 
-print(f"OUTPUT IMAGE SIZE: {np.array(input_image.size) * 16}")
+# Compute brightness and flatten arrays
+brightness_array = input_array ** 2
+flatten_brightness = brightness_array.flatten()
 
-points = []
-#offlimits = []
-### GENERATE STAR LOCATIONS 
+rands = np.random.rand(len(flatten_brightness))
+flatten_brightness[np.where(flatten_brightness < rands)] = 0
 
-print("--- Placing Stars ---")
+# Generate coordinates grid and flatten
+coords = np.indices(brightness_array.shape).reshape(2, -1).T
 
-for y in range(input_array.shape[0]):
-    for x in range(input_array.shape[1]):                
-        brightness = np.linalg.norm(input_array[y, x]) ** 2
-        rand = np.random.random()        
-        if rand < brightness:
-            points.append([x, y])            
-
-print(f"{len(points)} Systems Generated; Picking {system_count}")
-stars = random.choices(points, k=system_count)
+# Select points based on brightness as weights
+probabilities = flatten_brightness / flatten_brightness.sum()
+selected_indices = np.random.choice(len(coords), size=system_count, p=probabilities)
+stars = coords[selected_indices]
 
 print("--- Generating Hyperlanes ---")
 print("Generating Lane Pool...")
@@ -52,7 +49,7 @@ hyperlanes = []
 
 #conns = {}
 print("Trimming Lanes...")
-for s in range(len(stars)):
+for s in tqdm(list(range(len(stars)))):
     star = stars[s]
     brightness = np.linalg.norm(input_array[star[1], star[0]]) ** 2
     rand = int(((brightness + random.random()) / 2) * 5) + 1 
@@ -71,7 +68,7 @@ for s in range(len(stars)):
 
         #check if hyperlane intersects a pitch-black region
         midpoint = np.add(star, stars[c], dtype=int)//2
-        mid_brightness = np.linalg.norm(input_array[midpoint[1], midpoint[0]]) ** 2
+        mid_brightness = brightness_array[midpoint[1]][midpoint[0]]
         if mid_brightness < 0.05:
             continue
 
@@ -86,12 +83,15 @@ for s in range(len(stars)):
                 raise IndexError()
             hyperlanes.append([s, int(np.random.choice(connections))])
         except IndexError:
-            closest_stars = sorted(stars, key=lambda x: np.linalg.norm(np.subtract(star,x)), reverse=False)
-            for st in closest_stars:
-                if st != star:
-                    closest_star = st
-                    break
-            hyperlanes.append([s, stars.index(closest_star)])
+            star_dists: np.ndarray = np.linalg.norm(star - stars, axis=1)
+            star_dists[np.where(star_dists <= 0)[0]] = system_count
+            closest_star = star_dists.argmin()
+            #closest_stars = sorted(stars, key=lambda x: np.linalg.norm(np.subtract(star,x)), reverse=False)
+            # for st in closest_stars:
+            #     if st != star:
+            #         closest_star = st
+            #         break
+            hyperlanes.append([s, closest_star])
 
 ### Output to JS
 print("--- Creating Galaxy Object ---")
