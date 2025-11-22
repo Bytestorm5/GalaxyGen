@@ -139,7 +139,8 @@ def render():
         #mask = cv2.medianBlur(mask, 49)  #<<<  Stellaris Style; Breaks due to countries being displayed in one mask rather than separately
         output_countries = cv2.addWeighted(output_raw, 0.5, mask, 0.5, 0)
     print("--- Finalizing Galaxy ---\nWriting Images...")
-    cv2.imwrite("output_resources.png", output_resources)
+    if "resources" in galaxy and len(galaxy["resources"]) > 0:
+        cv2.imwrite("output_resources.png", output_resources)
     cv2.imwrite("output.png", output_countries)
     print("Render complete.")
 

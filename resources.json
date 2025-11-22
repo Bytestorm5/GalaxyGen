@@ -40,41 +40,5 @@
         "color":[255, 216, 0],
         "centricity":0,
         "rarity":0.5
-    },
-    {
-        "name":"Creolite",
-        "color":[178, 0, 255],
-        "centricity":0,
-        "rarity": 0.85
-    },
-    {
-        "name":"Manachaeite",
-        "color":[144, 255, 96],
-        "centricity":0,
-        "rarity": 0.8
-    },
-    {
-        "name":"Sental",
-        "color":[255, 0, 0],
-        "centricity":0,
-        "rarity": 0.9
-    },
-    {
-        "name":"Dark Crystals",
-        "color":[0, 19, 127],
-        "centricity":-0.5,
-        "rarity": 0.9
-    },
-    {
-        "name":"Sage",
-        "color":[0, 178, 17],
-        "centricity":0.25,
-        "rarity": 0.7
-    },
-    {
-        "name":"Primordial Shard",
-        "color":[102, 191, 255],
-        "centricity":0,
-        "rarity": 1
     }
 ]
