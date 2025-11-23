@@ -1,0 +1,44 @@
+[
+    {
+        "name": "Vesteeva",
+        "color": [82, 242, 170],
+        "centricity": 0,
+        "rarity": 0
+    },
+    {
+        "name":"Superdiamonds",
+        "color": [150, 55, 55],
+        "centricity": -0.85,
+        "rarity": 0.1
+    },
+    {
+        "name":"Kyber Crystals",
+        "color": [127, 0, 0],
+        "centricity": 0,
+        "rarity": 0.2
+    },
+    {
+        "name":"Faecium",
+        "color": [127, 51, 0],
+        "centricity":0,
+        "rarity": 0.2
+    },
+    {
+        "name":"Prometheum",
+        "color":[255, 106, 0],
+        "centricity": 0,
+        "rarity": 0.5
+    },
+    {
+        "name":"Ambrosia",
+        "color":[255, 0, 220],
+        "centricity":0,
+        "rarity": 0.5
+    },
+    {
+        "name":"Neurocyte",
+        "color":[255, 216, 0],
+        "centricity":0,
+        "rarity":0.5
+    }
+]
