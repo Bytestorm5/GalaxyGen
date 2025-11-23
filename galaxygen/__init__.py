@@ -10,6 +10,8 @@ from .config import (
 from .game import GameSession
 from .generation import generate_galaxy, generate_hyperlanes, sample_stars_from_density
 from .models import (
+    INTRASYSTEM_AU_PER_TICK,
+    LIGHTYEARS_PER_TICK_DEFAULT,
     CountryDefinition,
     Galaxy,
     GameClock,
@@ -23,6 +25,7 @@ from .models import (
 )
 from .rendering import render_galaxy
 from .resources import assign_resources
+from .system_generation import generate_system_profile, PlanetType, StarType
 from .storage import (
     load_country_definitions,
     load_galaxy,
@@ -39,6 +42,8 @@ __all__ = [
     "SCALE",
     "STAR_SIZE",
     "GameSession",
+    "INTRASYSTEM_AU_PER_TICK",
+    "LIGHTYEARS_PER_TICK_DEFAULT",
     "generate_galaxy",
     "generate_hyperlanes",
     "sample_stars_from_density",
@@ -54,6 +59,9 @@ __all__ = [
     "TravelOrder",
     "render_galaxy",
     "assign_resources",
+    "generate_system_profile",
+    "PlanetType",
+    "StarType",
     "load_country_definitions",
     "load_galaxy",
     "load_resource_definitions",
