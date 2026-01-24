@@ -5,6 +5,7 @@ import { GalaxyViewport } from "../components/GalaxyViewport";
 import { SaveMenu } from "../components/SaveMenu";
 import type {
   CountryDefinition,
+  EmpireEconomy,
   Galaxy,
   ResourceDefinition,
   SaveSlot,
@@ -12,11 +13,10 @@ import type {
   ViewMode,
 } from "../lib/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 const seedSaves: SaveSlot[] = [
-  { id: "alpha", name: "Atlas Run", tick: 4120, updatedAt: "Just now" },
-  { id: "beta", name: "Perihelion Drift", tick: 1580, updatedAt: "1 day ago" },
+  { id: "alpha", name: "Atlas Run", tick: 0, updatedAt: "Just now" },
 ];
 
 export default function Home() {
@@ -26,11 +26,15 @@ export default function Home() {
   const [galaxy, setGalaxy] = useState<Galaxy | undefined>();
   const [selection, setSelection] = useState<Selection>(null);
   const [leftPanel, setLeftPanel] = useState<string | null>(null);
+  const [rightPanel, setRightPanel] = useState<"selection" | "economy" | null>(null);
   const [tick, setTick] = useState(0);
   const [paused, setPaused] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("countries");
   const [resourceDefs, setResourceDefs] = useState<ResourceDefinition[]>([]);
   const [countryDefs, setCountryDefs] = useState<CountryDefinition[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [economy, setEconomy] = useState<EmpireEconomy | null>(null);
+  const [budgetForm, setBudgetForm] = useState({ tax: 0.15, infra: 0, grants: 0 });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -76,11 +80,32 @@ export default function Home() {
     }
   }, [saves.length]);
 
+  const bootstrapSession = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      setSessionId(data.session_id);
+      setTick(data.state.clock.tick);
+    } catch (err) {
+      setStatus("Unable to create session.");
+    }
+  }, []);
+
   useEffect(() => {
     if (view === "game" && !galaxy) {
       refreshGalaxy();
     }
   }, [view, galaxy, refreshGalaxy]);
+
+  useEffect(() => {
+    if (view === "game" && !sessionId) {
+      bootstrapSession();
+    }
+  }, [bootstrapSession, sessionId, view]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -101,6 +126,7 @@ export default function Home() {
     setTick(slot.tick);
     setView("game");
     refreshGalaxy();
+    bootstrapSession();
   };
 
   const renameSave = (id: string, name: string) => {
@@ -121,6 +147,58 @@ export default function Home() {
     if (activeSave?.id === id) {
       setActiveSave(null);
       setView("menu");
+    }
+  };
+
+  const fetchEconomy = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/economy`);
+      const data = await res.json();
+      setEconomy(data.economy);
+    } catch (err) {
+      setStatus("Unable to fetch economy.");
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (sessionId) {
+      interval = setInterval(async () => {
+        try {
+          await fetch(`${API_BASE}/sessions/${sessionId}/tick`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ steps: 1 }),
+          });
+          await fetchEconomy();
+        } catch (e) {
+          // ignore for now
+        }
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [fetchEconomy, sessionId]);
+
+  const updateBudget = async () => {
+    if (!sessionId) return;
+    try {
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/budget`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          income_tax_rate: budgetForm.tax,
+          infrastructure_investment: budgetForm.infra,
+          rd_grants: budgetForm.grants,
+        }),
+      });
+      const data = await res.json();
+      setEconomy(data.economy);
+      setStatus("Budget updated.");
+    } catch (err) {
+      setStatus("Budget update failed.");
     }
   };
 
@@ -178,8 +256,12 @@ export default function Home() {
         selection={selection}
         onSelect={(sel) => {
           setSelection(sel);
+          setRightPanel("selection");
         }}
-        onDeselect={() => setSelection(null)}
+        onDeselect={() => {
+          setSelection(null);
+          if (rightPanel === "selection") setRightPanel(null);
+        }}
         viewMode={viewMode}
         resourceDefs={resourceDefs}
         countryDefs={countryDefs}
@@ -187,11 +269,18 @@ export default function Home() {
 
       <div className="overlay">
         <div className="left-rail">
-          {["📡", "🛰️", "📜", "⚙️"].map((icon) => (
+          {["📡", "💰", "🛰️", "⚙️"].map((icon) => (
             <div
               key={icon}
               className="floating-icon"
-              onClick={() => setLeftPanel((curr) => (curr === icon ? null : icon))}
+              onClick={() => {
+                if (icon === "💰") {
+                  setRightPanel("economy");
+                  fetchEconomy();
+                } else {
+                  setLeftPanel((curr) => (curr === icon ? null : icon));
+                }
+              }}
               title="Open panel"
             >
               <span style={{ fontSize: 18 }}>{icon}</span>
@@ -213,11 +302,86 @@ export default function Home() {
           </div>
         )}
 
-        {selection && (
+        {rightPanel === "selection" && selection && (
           <div className="sidebar right">
             {rightPanelContent}
             <div style={{ marginTop: 14 }}>
               <p style={{ color: "var(--muted)" }}>Click blank space to close this pane.</p>
+            </div>
+          </div>
+        )}
+
+        {rightPanel === "economy" && (
+          <div className="sidebar right">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0 }}>Economy</h3>
+              <button className="close" onClick={() => setRightPanel(null)}>
+                ✕
+              </button>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <p style={{ color: "var(--muted)" }}>Budget & macro overview for your empire.</p>
+              {economy ? (
+                <>
+                  <div className="pill" style={{ marginTop: 8 }}>
+                    Debt: {economy.budget.debt.toFixed(0)} | Credit: {economy.budget.credit_availability.toFixed(2)}
+                  </div>
+                  {economy.planets.slice(0, 1).map((p) => {
+                    const pop = p.population.cohorts.reduce((a, b) => a + b, 0);
+                    return (
+                      <div key={p.id} style={{ marginTop: 12 }}>
+                        <strong>{p.id}</strong>
+                        <p style={{ color: "var(--muted)" }}>
+                          Pop: {(pop / 1e9).toFixed(2)}B | QoL: {p.qol.toFixed(2)} | Housing price:{" "}
+                          {p.housing.price.toFixed(2)} | Vacancy: {(p.housing.vacancy_rate * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: 12 }}>
+                    <h4>Budget Controls</h4>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <label>
+                        Income Tax Rate
+                        <input
+                          type="number"
+                          min={0}
+                          max={0.9}
+                          step={0.01}
+                          value={budgetForm.tax}
+                          onChange={(e) => setBudgetForm((f) => ({ ...f, tax: Number(e.target.value) }))}
+                          style={{ width: "100%", marginTop: 4 }}
+                        />
+                      </label>
+                      <label>
+                        Infrastructure Investment
+                        <input
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={budgetForm.infra}
+                          onChange={(e) => setBudgetForm((f) => ({ ...f, infra: Number(e.target.value) }))}
+                          style={{ width: "100%", marginTop: 4 }}
+                        />
+                      </label>
+                      <label>
+                        R&D Grants
+                        <input
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={budgetForm.grants}
+                          onChange={(e) => setBudgetForm((f) => ({ ...f, grants: Number(e.target.value) }))}
+                          style={{ width: "100%", marginTop: 4 }}
+                        />
+                      </label>
+                      <button onClick={updateBudget}>Apply Budget</button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: "var(--muted)" }}>Loading economy…</p>
+              )}
             </div>
           </div>
         )}
