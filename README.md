@@ -1,16 +1,16 @@
 # GalaxyGen / Asarto Monorepo
 
-This repo is organized around three layers:
+This repo is organized around three layers for sci-fi worldbuilding:
 
-- **GalaxyGen** – Python package for galaxy generation, rendering, and game-loop scaffolding.
-- **Asarto API** – FastAPI backend exposing GalaxyGen features and game session endpoints.
-- **Asarto** – Next.js + Pixi.js client for viewing, regenerating, and eventually playing on top of generated galaxies.
+- **GalaxyGen** – Python package for galaxy generation and rendering.
+- **Asarto API** – FastAPI backend exposing GalaxyGen features.
+- **Asarto** – Next.js + Pixi.js client for viewing generated galaxies.
 
 A sample galaxy and the supporting data are kept in `data/`.
 
 ## Layout
 - `galaxygen/` – Core Python module, Typer CLI entrypoint, and rendering utilities.
-- `apps/api/` – FastAPI service that wraps GalaxyGen; serves generation, rendering, and ticking endpoints.
+- `apps/api/` – FastAPI service that wraps GalaxyGen; serves generation and rendering endpoints.
 - `apps/web/` – Next.js frontend powered by Pixi.js for rendering the galaxy and calling the API.
 - `data/` – Default galaxy, density map, and resource/country definitions used across the stack.
 
@@ -32,8 +32,6 @@ uvicorn app.main:app --reload --port 8000
 Endpoints:
 - `GET /galaxy` – Fetch the current galaxy.
 - `POST /galaxy/generate` – Regenerate from the density map.
-- `POST /galaxy/render` – Render current galaxy to images.
-- `POST /sessions` / `{id}/tick` / `{id}/pause` / `{id}/resume` / `{id}/orders` – Tickable game sessions with travel stubs.
 
 ### Asarto Web
 ```bash
@@ -44,8 +42,7 @@ npm run dev
 Set `NEXT_PUBLIC_API_BASE` if the API is not on `http://localhost:8000`.
 
 ## Data model
-- `Galaxy`: width/height, stars, hyperlanes, resource regions, and ownership.
-- `GameState`: paused/ticking clock, travel orders; designed to extend toward a 4X loop (fleets, economies, events).
+- `Galaxy`: width/height, stars, hyperlanes, resource regions.
 
 ## Next steps
 - Flesh out game objects (fleets, empires, missions) and persist sessions.

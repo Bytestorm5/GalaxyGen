@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .dependencies import get_settings
-from .routes import galaxy, game
+from .routes import galaxy
 
 settings = get_settings()
 
@@ -17,7 +17,6 @@ app.add_middleware(
 )
 
 app.include_router(galaxy.router)
-app.include_router(game.router)
 
 
 @app.get("/health")

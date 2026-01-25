@@ -8,8 +8,10 @@ import numpy as np
 from PIL import Image
 from scipy.spatial import Delaunay
 
-from .models import Galaxy, Hyperlane, ResourceDefinition, Star
+from .models import Galaxy, Hyperlane, ResourceDefinition, Star, CelestialBody, PlanetType
 from .resources import assign_resources
+from .storage import load_country_definitions
+from .system_generation import generate_system_profile, StarType
 
 
 def _find_neighbors(index: int, triangulation: Delaunay) -> List[int]:
@@ -127,6 +129,7 @@ def generate_galaxy(
     system_count: int,
     resources: Optional[List[ResourceDefinition]] = None,
     rng_seed: Optional[int] = None,
+    countries_path: Optional[Path] = None,
     min_midpoint_density: float = 0.05,
 ) -> Galaxy:
     rng = random.Random(rng_seed)
@@ -143,7 +146,30 @@ def generate_galaxy(
         hyperlanes=hyperlanes,
         ownership=[],
         resources=[],
+        countries=[],
     )
+
+    if countries_path is None:
+        countries_path = Path("data/assets/countries.json")
+    if countries_path.exists():
+        galaxy.countries = load_country_definitions(countries_path)
+
+    # Generate star details
+    for idx, star in enumerate(galaxy.stars):
+        profile = generate_system_profile(galaxy, idx, rng_seed or 0)
+        if profile:
+            star.star_type = StarType(profile['classification'])
+            star.name = f"Star {idx + 1}"
+            star.description = f"A {profile['classification']} type star"
+            star.bodies = [
+                CelestialBody(
+                    name=f"Body {body['order'] + 1}",
+                    type=PlanetType(body['type']),
+                    distance_au=body['dist_au'],
+                    angle_deg=0.0,  # placeholder
+                    radius_km=1000.0,  # placeholder
+                ) for body in profile['bodies']
+            ]
 
     if resources:
         galaxy.resources = assign_resources(resources, galaxy, rng)

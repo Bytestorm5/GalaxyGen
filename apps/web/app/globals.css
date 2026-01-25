@@ -106,7 +106,7 @@ button:hover {
   flex-wrap: wrap;
 }
 
-.game-shell {
+.app {
   position: relative;
   width: 100vw;
   height: 100vh;

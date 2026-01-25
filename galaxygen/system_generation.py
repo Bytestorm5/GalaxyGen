@@ -1,37 +1,22 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import List, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .models import Galaxy
+from .types import PlanetType, StarType
+
+if TYPE_CHECKING:
+    from .models import Galaxy
 
 GRAVITATIONAL_CONSTANT = 6.67430e-11
 
 
-class StarType(str, Enum):
-    O = "O"
-    B = "B"
-    A = "A"
-    F = "F"
-    G = "G"
-    K = "K"
-    M = "M"
-
-
-class PlanetType(str, Enum):
-    TERRESTRIAL = "terrestrial"
-    GAS_GIANT = "gas_giant"
-    ICE_GIANT = "ice_giant"
-    ASTEROID_BELT = "asteroid_belt"
-
-
-def _rng_for_star(star, order: Optional[int] = None):
+def _rng_for_star(star, order: Optional[int] = None, galaxy_seed: int = 0):
     # deterministic seed from coordinates and optional orbit order
     base = f"{star[0]}{star[1]}"
     suffix = f"{order}" if order is not None else ""
-    seed = int(f"{base}{suffix}"[::-1])
+    seed = galaxy_seed + int(f"{base}{suffix}"[::-1])
     return np.random.default_rng(seed)
 
 
@@ -75,11 +60,11 @@ def _star_attributes(star_type: StarType, rng: np.random.Generator):
     return temperature, solar_mass, solar_radius
 
 
-def _planet_for_star(star_type: StarType, star_idx: int, order: int, galaxy_stars) -> Optional[dict]:
+def _planet_for_star(star_type: StarType, star_idx: int, order: int, galaxy_stars, galaxy_seed: int = 0) -> Optional[dict]:
     star = galaxy_stars[star_idx]
     if star[0] < 0 or star[1] < 0:
         return None
-    rng = _rng_for_star(star, order)
+    rng = _rng_for_star(star, order, galaxy_seed)
 
     dist = (0.5 * order) - np.clip(rng.normal(0.25, 0.225), a_min=0.05, a_max=0.45)
     dist = max(0.04, dist)  # AU
@@ -147,21 +132,21 @@ def _planet_for_star(star_type: StarType, star_idx: int, order: int, galaxy_star
     }
 
 
-def generate_system_profile(galaxy: Galaxy, star_idx: int) -> Optional[dict]:
+def generate_system_profile(galaxy: Galaxy, star_idx: int, galaxy_seed: int = 0) -> Optional[dict]:
     if star_idx < 0 or star_idx >= len(galaxy.stars):
         return None
     star_coord = galaxy.stars[star_idx].as_tuple()
     if star_coord[0] < 0 or star_coord[1] < 0:
         return None
 
-    rng = _rng_for_star(star_coord)
+    rng = _rng_for_star(star_coord, galaxy_seed=galaxy_seed)
     classification = _classify_star(rng)
     temperature, solar_mass, solar_radius = _star_attributes(classification, rng)
 
     max_bodies = int(rng.integers(5, 10))
     bodies: List[dict] = []
     for order in range(max_bodies):
-        body = _planet_for_star(classification, star_idx, order, [s.as_tuple() for s in galaxy.stars])
+        body = _planet_for_star(classification, star_idx, order, [s.as_tuple() for s in galaxy.stars], galaxy_seed)
         if body:
             bodies.append(body)
 
