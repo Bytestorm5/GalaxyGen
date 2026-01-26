@@ -7,7 +7,9 @@
     "dev:web": "next dev",
     "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
     "build": "next build",
-    "start": "next start",
+    "start:api": "cd ..\\api && .\\api_venv\\Scripts\\python -m uvicorn app.main:app --port 8000",
+    "start:web": "next start",
+    "start": "concurrently -k \"npm:start:api\" \"npm:start:web\"",
     "lint": "next lint"
   },
   "dependencies": {
