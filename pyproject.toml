@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "galaxygen"
+version = "0.1.0"
+description = "Galaxy generation and rendering utilities for sci-fi worldbuilding."
+authors = [{ name = "GalaxyGen Maintainers" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "opencv-python>=4.7",
+    "pillow>=10.0",
+    "pydantic>=1.10",
+    "scipy>=1.10",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "fastapi>=0.110",
+]
+
+[project.scripts]
+galaxygen = "galaxygen.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]

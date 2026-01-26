@@ -122,3 +122,7 @@ templates/edit_systems_old.html
 country_legend.png
 output_resources.png
 resource_legend.png
+node_modules/
+apps/web/.next/
+apps/web/out/
+/apps/api/api_venv

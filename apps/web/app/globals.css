@@ -1,0 +1,223 @@
+:root {
+  --bg: #040507;
+  --panel: rgba(12, 15, 22, 0.9);
+  --panel-strong: rgba(16, 20, 30, 0.95);
+  --accent: #9efcff;
+  --muted: #9ca9c7;
+  --text: #e6edf7;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Space Grotesk", "Sora", "DM Sans", sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(158, 252, 255, 0.4);
+  background: linear-gradient(135deg, rgba(158, 252, 255, 0.16), rgba(88, 128, 255, 0.16));
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  border-color: rgba(158, 252, 255, 0.6);
+}
+
+.menu-shell {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 28px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid rgba(158, 252, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.panel h2 {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+}
+
+.panel p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.card {
+  background: var(--panel-strong);
+  border: 1px solid rgba(158, 252, 255, 0.06);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  background: rgba(158, 252, 255, 0.12);
+  color: var(--accent);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 40% 30%, rgba(20, 40, 60, 0.25), transparent 50%), var(--bg);
+}
+
+.viewport {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.left-rail {
+  position: absolute;
+  top: 20%;
+  left: 18px;
+  display: grid;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.floating-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(158, 252, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.floating-icon:hover {
+  transform: translateY(-2px);
+  border-color: rgba(158, 252, 255, 0.35);
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 72px;
+  width: 320px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(15, 20, 30, 0.96), rgba(10, 12, 18, 0.94));
+  border: 1px solid rgba(158, 252, 255, 0.1);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.sidebar.left {
+  left: 70px;
+  border-radius: 12px 12px 0 0;
+}
+
+.sidebar.right {
+  right: 18px;
+  border-radius: 12px 12px 0 0;
+}
+
+.close {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  padding: 4px;
+}
+
+.bottom-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(10, 12, 18, 0.2), rgba(10, 12, 18, 0.8));
+  border-top: 1px solid rgba(158, 252, 255, 0.1);
+  pointer-events: auto;
+}
+
+.stat {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(158, 252, 255, 0.12);
+}
+
+@media (max-width: 1080px) {
+  .menu-shell {
+    grid-template-columns: 1fr;
+  }
+}
