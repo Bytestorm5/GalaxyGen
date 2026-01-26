@@ -44,6 +44,10 @@ Set `NEXT_PUBLIC_API_BASE` to the full API URL (for example `http://localhost:80
 ## Deployment note
 This frontend expects the API to run on a separate server. Configure `NEXT_PUBLIC_API_BASE` in your hosting environment.
 
+## CORS
+If the frontend and API run on different origins, set `ASARTO_CORS_ORIGINS` on the API to a comma-separated list of allowed origins.
+Example: `ASARTO_CORS_ORIGINS=http://localhost:3000,https://asarto.kamilarif.com`.
+
 ## Data model
 - `Galaxy`: width/height, stars, hyperlanes, resource regions.
 
