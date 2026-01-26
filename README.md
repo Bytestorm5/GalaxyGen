@@ -41,6 +41,15 @@ npm run dev
 ```
 Set `NEXT_PUBLIC_API_BASE` if the API is not on `http://localhost:8000`.
 
+## Single server deployment (Docker + Caddy)
+This runs the Next.js site and FastAPI API on the same host and only exposes the API through `/api` on the site.
+
+```bash
+cd apps/web
+# optional: set DOMAIN=your.domain in the shell or a .env file
+npm run start
+```
+
 ## Data model
 - `Galaxy`: width/height, stars, hyperlanes, resource regions.
 

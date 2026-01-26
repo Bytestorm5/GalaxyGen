@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+      NEXT_PUBLIC_API_BASE: /api
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.7.6
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

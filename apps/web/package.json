@@ -9,7 +9,8 @@
     "build": "next build",
     "start:api": "cd ..\\api && .\\api_venv\\Scripts\\python -m uvicorn app.main:app --port 8000",
     "start:web": "next start",
-    "start": "concurrently -k \"npm:start:api\" \"npm:start:web\"",
+    "start:compose": "docker compose -f ../../deploy/docker-compose.yml up --build",
+    "start": "npm run start:compose",
     "lint": "next lint"
   },
   "dependencies": {
