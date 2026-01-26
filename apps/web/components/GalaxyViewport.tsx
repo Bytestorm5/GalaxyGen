@@ -40,10 +40,19 @@ type Nameplate = {
   y: number;
 };
 
+type BodyNameplate = {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+};
+
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const NAMEPLATE_ZOOM_THRESHOLD = 1.25;
-const NAMEPLATE_FONT_SIZE = 12;
+const NAMEPLATE_FONT_SIZE = 15;
 const NAMEPLATE_OFFSET_PX = 10;
+const SYSTEM_DISTANCE_SCALE = 230;
+const BODY_NAMEPLATE_OFFSET_PX = 12;
 const NAMEPLATE_STYLE = new TextStyle({
   fontFamily: "Space Grotesk, Sora, DM Sans, sans-serif",
   fontSize: NAMEPLATE_FONT_SIZE,
@@ -156,6 +165,16 @@ export function GalaxyViewport({
   // Keep nameplates at a consistent on-screen size.
   const nameplateScale = scaled > 0 ? 1 / scaled : 1;
   const nameplateOffset = scaled > 0 ? NAMEPLATE_OFFSET_PX / scaled : NAMEPLATE_OFFSET_PX;
+  const systemScale = 10 * zoom;
+  const showBodyNameplates = viewMode === "system" && selectedStar != null;
+  const bodyNameplateScale = systemScale > 0 ? 1 / systemScale : 1;
+  const bodyNameplateOffset = systemScale > 0 ? BODY_NAMEPLATE_OFFSET_PX / systemScale : BODY_NAMEPLATE_OFFSET_PX;
+  const starNameplate = useMemo(() => {
+    if (!galaxy || selectedStar == null) return null;
+    const name = galaxy.stars[selectedStar]?.name?.trim();
+    if (!name) return null;
+    return { name, x: 0, y: 0 };
+  }, [galaxy, selectedStar]);
   const nameplates = useMemo<Nameplate[]>(() => {
     if (!galaxy || !showNameplates) return [];
     return galaxy.stars.reduce<Nameplate[]>((acc, star, idx) => {
@@ -170,6 +189,29 @@ export function GalaxyViewport({
       return acc;
     }, []);
   }, [galaxy, showNameplates]);
+  const bodyNameplates = useMemo<BodyNameplate[]>(() => {
+    if (!galaxy || !showBodyNameplates || selectedStar == null) return [];
+    const star = galaxy.stars[selectedStar];
+    if (!star) return [];
+    const count = star.bodies.length;
+    return star.bodies.reduce<BodyNameplate[]>((acc, body, idx) => {
+      const name = body.name?.trim();
+      if (!name) return acc;
+      const distance = body.distance_au * SYSTEM_DISTANCE_SCALE;
+      let x = 0;
+      let y = 0;
+      if (body.type === "asteroid_belt") {
+        x = 0;
+        y = -distance;
+      } else {
+        const angle = count > 0 ? (idx / count) * 2 * Math.PI : 0;
+        x = Math.cos(angle) * distance;
+        y = Math.sin(angle) * distance;
+      }
+      acc.push({ id: idx, name, x, y });
+      return acc;
+    }, []);
+  }, [galaxy, selectedStar, showBodyNameplates]);
 
   useEffect(() => {
     if (!galaxy) return;
@@ -462,7 +504,7 @@ export function GalaxyViewport({
                 // Draw orbits
                 star.bodies.forEach((body) => {
                   if (body.type !== "asteroid_belt") {
-                    const orbitRadius = body.distance_au * 230;
+                    const orbitRadius = body.distance_au * SYSTEM_DISTANCE_SCALE;
                     g.lineStyle(1, 0x444444, 0.5);
                     g.drawCircle(0, 0, orbitRadius);
                     g.lineStyle(0);
@@ -472,9 +514,9 @@ export function GalaxyViewport({
                 star.bodies.forEach((body, idx) => {
                   if (body.type === "asteroid_belt") {
                     // Draw asteroid belt as randomized circles
-                    const beltRadius = body.distance_au * 230;
+                    const beltRadius = body.distance_au * SYSTEM_DISTANCE_SCALE;
                     const beltWidthAU = 0.1; // thickness in AU
-                    const beltWidth = beltWidthAU * 230;
+                    const beltWidth = beltWidthAU * SYSTEM_DISTANCE_SCALE;
                     for (let i = 0; i < 50; i++) {
                       const seed = (selectedStar || 0) * 10000 + idx * 100 + i;
                       const angle = seededRandom(seed + 1) * 2 * Math.PI;
@@ -488,7 +530,7 @@ export function GalaxyViewport({
                     }
                   } else {
                     const angle = (idx / star.bodies.length) * 2 * Math.PI;
-                    const distance = body.distance_au * 230;
+                    const distance = body.distance_au * SYSTEM_DISTANCE_SCALE;
                     const x = Math.cos(angle) * distance;
                     const y = Math.sin(angle) * distance;
                     const color = body.color ? rgbTupleToHex(body.color) : 0x888888;
@@ -622,6 +664,40 @@ export function GalaxyViewport({
                   </Container>
                 );
               })}
+            </Container>
+          )}
+          {showBodyNameplates && viewMode === "system" && (starNameplate || bodyNameplates.length > 0) && (
+            <Container>
+              {starNameplate && (
+                <Container
+                  key="star-nameplate"
+                  position={[starNameplate.x, starNameplate.y + bodyNameplateOffset]}
+                  scale={bodyNameplateScale}
+                >
+                  <Text
+                    text={starNameplate.name}
+                    anchor={[0.5, 0]}
+                    x={0}
+                    y={0}
+                    style={NAMEPLATE_STYLE}
+                  />
+                </Container>
+              )}
+              {bodyNameplates.map((plate) => (
+                <Container
+                  key={`body-nameplate-${plate.id}`}
+                  position={[plate.x, plate.y + bodyNameplateOffset]}
+                  scale={bodyNameplateScale}
+                >
+                  <Text
+                    text={plate.name}
+                    anchor={[0.5, 0]}
+                    x={0}
+                    y={0}
+                    style={NAMEPLATE_STYLE}
+                  />
+                </Container>
+              ))}
             </Container>
           )}
         </Container>

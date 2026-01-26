@@ -162,15 +162,20 @@ def generate_galaxy(
             star.star_type = StarType(profile['classification'])
             star.name = generate_random_word()
             star.description = f"A {profile['classification']} type star"
-            star.bodies = [
-                CelestialBody(
-                    name=generate_random_word(),
-                    type=PlanetType(body['type']),
-                    distance_au=body['dist_au'],
-                    angle_deg=0.0,  # placeholder
-                    radius_km=1000.0,  # placeholder
-                ) for body in profile['bodies']
-            ]
+            star.bodies = []
+            for body in profile["bodies"]:
+                name = body.get("name") or generate_random_word()
+                if body["type"] == PlanetType.ASTEROID_BELT.value and not name.endswith(" Belt"):
+                    name = f"{name} Belt"
+                star.bodies.append(
+                    CelestialBody(
+                        name=name,
+                        type=PlanetType(body["type"]),
+                        distance_au=body["dist_au"],
+                        angle_deg=0.0,  # placeholder
+                        radius_km=1000.0,  # placeholder
+                    )
+                )
 
     if resources:
         galaxy.resources = assign_resources(resources, galaxy, rng)

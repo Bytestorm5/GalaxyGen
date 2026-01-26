@@ -204,13 +204,20 @@ export default function Home() {
           description: `A ${profile.classification} type star`,
           star_type: profile.classification,
           admin_levels: [null, null, null, null],
-          bodies: profile.bodies.map((body: any, idx: number) => ({
-            name: `Body ${idx + 1}`,
-            type: body.type,
-            distance_au: body.dist_au,
-            angle_deg: 0.0,
-            radius_km: 1000.0, // placeholder
-          }))
+          bodies: profile.bodies.map((body: any, idx: number) => {
+            const rawName = typeof body.name === "string" ? body.name.trim() : "";
+            let name = rawName || `Body ${idx + 1}`;
+            if (body.type === "asteroid_belt" && !name.endsWith(" Belt")) {
+              name = `${name} Belt`;
+            }
+            return {
+              name,
+              type: body.type,
+              distance_au: body.dist_au,
+              angle_deg: 0.0,
+              radius_km: 1000.0, // placeholder
+            };
+          })
         };
         
         const newGalaxy = { ...galaxy, width: newWidth, height: newHeight, stars: [...galaxy.stars, newStar] };

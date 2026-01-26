@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List
 
 import numpy as np
 
+from .random_names import generate_random_word
 from .types import PlanetType, StarType
 
 if TYPE_CHECKING:
@@ -58,6 +59,13 @@ def _star_attributes(star_type: StarType, rng: np.random.Generator):
         solar_mass = rng.uniform(0.08, 0.45)
         solar_radius = rng.uniform(0.4, 0.7)
     return temperature, solar_mass, solar_radius
+
+
+def _body_name(body_type: str) -> str:
+    name = generate_random_word()
+    if body_type == PlanetType.ASTEROID_BELT.value and not name.endswith(" Belt"):
+        name = f"{name} Belt"
+    return name
 
 
 def _planet_for_star(star_type: StarType, star_idx: int, order: int, galaxy_stars, galaxy_seed: int = 0) -> Optional[dict]:
@@ -148,6 +156,7 @@ def generate_system_profile(galaxy: Galaxy, star_idx: int, galaxy_seed: int = 0)
     for order in range(max_bodies):
         body = _planet_for_star(classification, star_idx, order, [s.as_tuple() for s in galaxy.stars], galaxy_seed)
         if body:
+            body["name"] = _body_name(body["type"])
             bodies.append(body)
 
     return {
