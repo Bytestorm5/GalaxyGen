@@ -59,9 +59,27 @@ class ResourceRegion(BaseModel):
     systems: List[int]
 
 
+class ClusterDefinition(BaseModel):
+    name: str
+    color: Tuple[int, int, int] = Field(default_factory=lambda: (255, 255, 255))
+
+
+class ProvinceDefinition(BaseModel):
+    name: str
+    color: Tuple[int, int, int] = Field(default_factory=lambda: (255, 255, 255))
+    clusters: List[ClusterDefinition] = Field(default_factory=list)
+
+
+class SectorDefinition(BaseModel):
+    name: str
+    color: Tuple[int, int, int] = Field(default_factory=lambda: (255, 255, 255))
+    provinces: List[ProvinceDefinition] = Field(default_factory=list)
+
+
 class CountryDefinition(BaseModel):
     name: str
     color: Tuple[int, int, int]
+    sectors: List[SectorDefinition] = Field(default_factory=list)
 
 
 class Galaxy(BaseModel):
@@ -91,7 +109,7 @@ class Galaxy(BaseModel):
             for entry in data.get("resources", [])
         ]
         countries = [
-            CountryDefinition(name=entry["name"], color=tuple(entry["color"]))
+            CountryDefinition(**entry)
             for entry in data.get("countries", [])
         ]
         return cls(
@@ -110,7 +128,7 @@ class Galaxy(BaseModel):
             "stars": [s.model_dump() for s in self.stars],
             "hyperlanes": [h.as_pair() for h in self.hyperlanes],
             "resources": [r.model_dump() for r in self.resources],
-            "countries": [{"name": c.name, "color": list(c.color)} for c in self.countries],
+            "countries": [c.model_dump() for c in self.countries],
         }
 
     def remove_star(self, idx: int) -> None:

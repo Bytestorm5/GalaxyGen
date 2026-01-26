@@ -8,6 +8,7 @@ from galaxygen.storage import (
     load_country_definitions,
     load_galaxy,
     load_resource_definitions,
+    save_country_definitions,
     save_galaxy,
 )
 
@@ -28,7 +29,10 @@ def fetch_galaxy(settings=Depends(get_settings)):
 @router.post("", response_model=GalaxyResponse)
 def persist_galaxy(payload: SaveGalaxyRequest, settings=Depends(get_settings)):
     save_galaxy(settings.galaxy_file, payload.galaxy)
-    return {"galaxy": payload.galaxy}
+    if payload.countries is not None:
+        from galaxygen.storage import save_country_definitions
+        save_country_definitions(settings.countries_file, payload.countries)
+    return {"galaxy": payload.galaxy, "countries": payload.countries}
 
 
 @router.post("/generate", response_model=GalaxyResponse)

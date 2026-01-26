@@ -23,6 +23,13 @@ type Props = {
   resourceDefs?: ResourceDefinition[];
   countryDefs?: CountryDefinition[];
   selectedStar?: number;
+  onContextMenu?: (type: 'empty' | 'star' | 'lane', clientX: number, clientY: number, id?: number) => void;
+  onGalaxyClick?: (type: 'empty' | 'star' | 'lane', shiftKey: boolean, id?: number, position?: {x: number, y: number}) => void;
+  onGalaxyKeyDown?: (key: string) => void;
+  addingHyperlane?: boolean;
+  galaxySelection?: {type: 'star' | 'lane', id: number} | null;
+  selectedAdminForPaint?: number | null;
+  adminFocus?: (number | null)[];
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -53,6 +60,13 @@ export function GalaxyViewport({
   resourceDefs = [],
   countryDefs = [],
   selectedStar,
+  onContextMenu,
+  onGalaxyClick,
+  onGalaxyKeyDown,
+  addingHyperlane = false,
+  galaxySelection,
+  selectedAdminForPaint,
+  adminFocus = [],
 }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 1200, height: 720 });
@@ -62,6 +76,7 @@ export function GalaxyViewport({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [startOffset, setStartOffset] = useState({ x: 0, y: 0 });
   const [moved, setMoved] = useState(false);
+  const [downPos, setDownPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const syncSize = () => {
@@ -77,6 +92,8 @@ export function GalaxyViewport({
     if (!galaxy) return 1;
     return Math.min(size.width / galaxy.width, size.height / galaxy.height);
   }, [galaxy, size.height, size.width]);
+
+  const scaled = baseScale * zoom;
 
   useEffect(() => {
     if (!galaxy) return;
@@ -94,7 +111,12 @@ export function GalaxyViewport({
     }
   }, [galaxy, baseScale, size.height, size.width, viewMode, selectedStar]);
 
-  const scaled = baseScale * zoom;
+  useEffect(() => {
+    if (!galaxy || viewMode !== "galaxy") return;
+    const startX = (size.width - galaxy.width * scaled) / 2;
+    const startY = (size.height - galaxy.height * scaled) / 2;
+    setOffset({ x: startX, y: startY });
+  }, [galaxy, scaled, size.height, size.width, viewMode]);
 
   const voronoiPolys = useMemo(() => {
     if (!galaxy || galaxy.stars.length === 0) return [];
@@ -125,7 +147,9 @@ export function GalaxyViewport({
       event.preventDefault();
       if (!mountRef.current) return;
       const rect = mountRef.current.getBoundingClientRect();
-      const focus = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const centerX = viewMode === "system" ? size.width / 2 : 0;
+      const centerY = viewMode === "system" ? size.height / 2 : 0;
+      const focus = { x: event.clientX - rect.left - centerX, y: event.clientY - rect.top - centerY };
       const minZoom = viewMode === "system" ? 0.1 : 0.25;
       const nextZoom = clamp(zoom * (1 - event.deltaY * 0.001), minZoom, 6);
       const scaleRatio = nextZoom / zoom;
@@ -135,16 +159,90 @@ export function GalaxyViewport({
       }));
       setZoom(nextZoom);
     },
-    [zoom]
+    [zoom, viewMode, size]
   );
 
-  const handlePointerDown = (event: React.PointerEvent) => {
+  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!galaxy || viewMode !== "galaxy") return;
+    const worldPos = toWorld(event.clientX, event.clientY);
+    let type: 'empty' | 'star' | 'lane' = 'empty';
+    let id: number | undefined;
+    // check stars
+    for (let i = 0; i < galaxy.stars.length; i++) {
+      const star = galaxy.stars[i];
+      const dx = star.x - worldPos.x;
+      const dy = star.y - worldPos.y;
+      if (dx * dx + dy * dy < 25) {
+        type = 'star';
+        id = i;
+        break;
+      }
+    }
+    if (type === 'empty') {
+      // check lanes
+      for (let i = 0; i < galaxy.hyperlanes.length; i++) {
+        const lane = galaxy.hyperlanes[i];
+        const a = galaxy.stars[lane.a];
+        const b = galaxy.stars[lane.b];
+        const dist = distanceToSegment(worldPos, { x: a.x, y: a.y }, { x: b.x, y: b.y });
+        if (dist < 5) {
+          type = 'lane';
+          id = i;
+          break;
+        }
+      }
+    }
+    onContextMenu?.(type, event.clientX, event.clientY, id);
+  }, [galaxy, viewMode, toWorld, onContextMenu]);
+
+  const handleGalaxyClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!galaxy || viewMode !== "galaxy") return;
+    const worldPos = toWorld(downPos.x, downPos.y);
+    let type: 'empty' | 'star' | 'lane' = 'empty';
+    let id: number | undefined;
+    // check stars
+    for (let i = 0; i < galaxy.stars.length; i++) {
+      const star = galaxy.stars[i];
+      const dx = star.x - worldPos.x;
+      const dy = star.y - worldPos.y;
+      if (dx * dx + dy * dy < 25) {
+        type = 'star';
+        id = i;
+        break;
+      }
+    }
+    if (type === 'empty') {
+      // check lanes
+      for (let i = 0; i < galaxy.hyperlanes.length; i++) {
+        const lane = galaxy.hyperlanes[i];
+        const a = galaxy.stars[lane.a];
+        const b = galaxy.stars[lane.b];
+        const dist = distanceToSegment(worldPos, { x: a.x, y: a.y }, { x: b.x, y: b.y });
+        if (dist < 5) {
+          type = 'lane';
+          id = i;
+          break;
+        }
+      }
+    }
+    onGalaxyClick?.(type, event.shiftKey, id, type === 'empty' ? worldPos : undefined);
+  }, [galaxy, viewMode, toWorld, onGalaxyClick, downPos]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (viewMode === "galaxy") {
+      onGalaxyKeyDown?.(event.key);
+    }
+  }, [viewMode, onGalaxyKeyDown]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
     if (event.button !== 0) return;
     setDragging(true);
     setDragStart({ x: event.clientX, y: event.clientY });
     setStartOffset(offset);
     setMoved(false);
-  };
+    setDownPos({ x: event.clientX, y: event.clientY });
+  }, [offset]);
 
   const handlePointerMove = (event: React.PointerEvent) => {
     if (!dragging) return;
@@ -216,6 +314,10 @@ export function GalaxyViewport({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={() => setDragging(false)}
+      onContextMenu={handleContextMenu}
+      onClick={handleGalaxyClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
     >
       <Stage
         width={size.width}
@@ -279,29 +381,102 @@ export function GalaxyViewport({
                   const a = galaxy.stars[lane.a];
                   const b = galaxy.stars[lane.b];
                   if (!a || !b) return;
-                  const isSelected = selection?.type === "lane" && selection.id === idx;
+                  const isSelected = galaxySelection?.type === "lane" && galaxySelection.id === idx;
                   g.lineStyle(isSelected ? 0.75 : 0.5, isSelected ? 0xeeeeee : 0x55b7ff, isSelected ? 0.8 : 0.5);
                   g.moveTo(a.x, a.y);
                   g.lineTo(b.x, b.y);
                 });
 
                 galaxy.stars.forEach((star, idx) => {
-                  const isSelected = selection?.type === "star" && selection.id === idx;
+                  const isSelected = galaxySelection?.type === "star" && galaxySelection.id === idx;
+                  const isHighlighted = addingHyperlane || (editMode === "political" && selectedAdminForPaint != null && star.admin_levels[adminFocus.length] !== selectedAdminForPaint);
                   let fillColor = 0xeeeeee;
                   if (editMode === "political") {
-                    const countryId = star.admin_levels[0];
-                    if (countryId !== null && countryId !== undefined) {
-                      const country = countryDefs[countryId];
-                      if (country) {
-                        fillColor = rgbTupleToHex(country.color);
+                    const level = adminFocus.length;
+                    const divId = star.admin_levels[level];
+                    if (divId !== null && divId !== undefined) {
+                      let color: [number, number, number] | undefined;
+                      if (level === 0) {
+                        color = countryDefs[divId]?.color;
+                      } else if (level === 1) {
+                        const countryId = star.admin_levels[0];
+                        if (countryId !== null) {
+                          color = countryDefs[countryId]?.sectors[divId]?.color;
+                        }
+                      } else if (level === 2) {
+                        const countryId = star.admin_levels[0];
+                        const sectorId = star.admin_levels[1];
+                        if (countryId !== null && sectorId !== null) {
+                          color = countryDefs[countryId]?.sectors[sectorId]?.provinces[divId]?.color;
+                        }
+                      } else if (level === 3) {
+                        const countryId = star.admin_levels[0];
+                        const sectorId = star.admin_levels[1];
+                        const provinceId = star.admin_levels[2];
+                        if (countryId !== null && sectorId !== null && provinceId !== null) {
+                          color = countryDefs[countryId]?.sectors[sectorId]?.provinces[provinceId]?.clusters[divId]?.color;
+                        }
+                      }
+                      if (color) {
+                        fillColor = rgbTupleToHex(color);
                       }
                     }
                   }
                   g.beginFill(fillColor, isSelected ? 1 : 0.9);
-                  g.lineStyle(isSelected ? 0.45 : 0, 0xeeeeee, isSelected ? 0.9 : 0);
+                  g.lineStyle(isSelected ? 0.45 : 0, isHighlighted ? 0xffff00 : 0xeeeeee, isSelected ? 0.9 : (isHighlighted ? 0.8 : 0));
                   g.drawCircle(star.x, star.y, isSelected ? 2.8 : 2.2);
                   g.endFill();
                 });
+
+                // Draw voronoi regions for view, political modes
+                if (editMode === "view" || editMode === "political") {
+                  const zoomLevel = Math.floor(zoom * 2); // 0: <0.5, 1: 0.5-1, 2: 1-1.5, 3: 1.5-2, etc.
+                  const displayLevel = Math.min(zoomLevel, 3); // max level 3
+                  voronoiPolys.forEach((poly, idx) => {
+                    if (!poly) return;
+                    const star = galaxy.stars[idx];
+                    const level = adminFocus.length;
+                    const divId = star.admin_levels[level];
+                    let color = 0x333333; // default gray
+                    let alpha = 0.1;
+                    if (divId !== null && divId !== undefined) {
+                      let col: [number, number, number] | undefined;
+                      if (level === 0) {
+                        col = countryDefs[divId]?.color;
+                      } else if (level === 1) {
+                        const countryId = star.admin_levels[0];
+                        if (countryId !== null) {
+                          col = countryDefs[countryId]?.sectors[divId]?.color;
+                        }
+                      } else if (level === 2) {
+                        const countryId = star.admin_levels[0];
+                        const sectorId = star.admin_levels[1];
+                        if (countryId !== null && sectorId !== null) {
+                          col = countryDefs[countryId]?.sectors[sectorId]?.provinces[divId]?.color;
+                        }
+                      } else if (level === 3) {
+                        const countryId = star.admin_levels[0];
+                        const sectorId = star.admin_levels[1];
+                        const provinceId = star.admin_levels[2];
+                        if (countryId !== null && sectorId !== null && provinceId !== null) {
+                          col = countryDefs[countryId]?.sectors[sectorId]?.provinces[provinceId]?.clusters[divId]?.color;
+                        }
+                      }
+                      if (col) {
+                        color = rgbTupleToHex(col);
+                        alpha = displayLevel === 0 ? 0.4 : 0.2;
+                      }
+                    }
+                    g.beginFill(color, alpha);
+                    g.lineStyle(0.5, color, 0.3);
+                    g.moveTo(poly[0][0], poly[0][1]);
+                    for (let i = 1; i < poly.length; i++) {
+                      g.lineTo(poly[i][0], poly[i][1]);
+                    }
+                    g.closePath();
+                    g.endFill();
+                  });
+                }
               }
             }}
           />

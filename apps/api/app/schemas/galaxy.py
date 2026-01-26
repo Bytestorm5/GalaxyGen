@@ -22,6 +22,7 @@ class RenderRequest(BaseModel):
 
 class SaveGalaxyRequest(BaseModel):
     galaxy: Galaxy
+    countries: list[CountryDefinition] | None = None
 
 
 class GalaxyResponse(BaseModel):

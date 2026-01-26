@@ -34,3 +34,8 @@ def load_resource_definitions(path: Path) -> List[ResourceDefinition]:
 def load_country_definitions(path: Path) -> List[CountryDefinition]:
     data = load_json(path)
     return [CountryDefinition(**entry) for entry in data]
+
+
+def save_country_definitions(path: Path, countries: Iterable[CountryDefinition]) -> None:
+    data = [country.dict() for country in countries]
+    save_json(path, data)
