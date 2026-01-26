@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from galaxygen.generation import generate_galaxy
+from galaxygen.random_names import generate_random_word
 from galaxygen.rendering import render_galaxy
 from galaxygen.storage import (
     load_country_definitions,
@@ -58,6 +59,7 @@ def generate_system(payload: GenerateSystemRequest, settings=Depends(get_setting
     profile = generate_system_profile(payload.galaxy, payload.star_index, payload.seed or 0)
     if profile is None:
         raise HTTPException(status_code=400, detail=f"Invalid star index {payload.star_index} or coordinates")
+    profile["name"] = generate_random_word()
     return profile
 
 

@@ -194,12 +194,13 @@ export default function Home() {
         });
         if (!res.ok) throw new Error('Failed to generate system');
         const profile = await res.json();
+        const generatedName = typeof profile.name === "string" ? profile.name.trim() : "";
         
         // Create star with generated properties
         const newStar: Star = {
           x,
           y,
-          name: `Star ${galaxy.stars.length + 1}`,
+          name: generatedName || `Star ${galaxy.stars.length + 1}`,
           description: `A ${profile.classification} type star`,
           star_type: profile.classification,
           admin_levels: [null, null, null, null],

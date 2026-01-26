@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Container, Graphics, Stage } from "@pixi/react";
+import { Container, Graphics, Stage, Text } from "@pixi/react";
 import { Delaunay } from "d3-delaunay";
+import { TextStyle } from "pixi.js";
 import type {
   CountryDefinition,
   EditMode,
@@ -32,7 +33,25 @@ type Props = {
   adminFocus?: (number | null)[];
 };
 
+type Nameplate = {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+};
+
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const NAMEPLATE_ZOOM_THRESHOLD = 1.25;
+const NAMEPLATE_FONT_SIZE = 12;
+const NAMEPLATE_OFFSET_PX = 10;
+const NAMEPLATE_STYLE = new TextStyle({
+  fontFamily: "Space Grotesk, Sora, DM Sans, sans-serif",
+  fontSize: NAMEPLATE_FONT_SIZE,
+  fill: 0xd9e2ed,
+  fontWeight: "500",
+  stroke: 0x06080c,
+  strokeThickness: 2,
+});
 
 // Simple seeded random number generator
 const seededRandom = (seed: number) => {
@@ -71,6 +90,9 @@ export function GalaxyViewport({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prevViewModeRef = useRef<ViewMode>(viewMode);
   const galaxyZoomRef = useRef<number>(1);
+  const zoomRef = useRef<number>(1);
+  const sizeRef = useRef({ width: 0, height: 0 });
+  const hasCenteredRef = useRef(false);
   const [size, setSize] = useState({ width: 1200, height: 720 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -79,6 +101,10 @@ export function GalaxyViewport({
   const [startOffset, setStartOffset] = useState({ x: 0, y: 0 });
   const [moved, setMoved] = useState(false);
   const [downPos, setDownPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   useEffect(() => {
     const syncSize = () => {
@@ -126,6 +152,24 @@ export function GalaxyViewport({
   }, [galaxy, galaxyBounds, size.height, size.width]);
 
   const scaled = baseScale * zoom;
+  const showNameplates = viewMode === "galaxy" && zoom >= NAMEPLATE_ZOOM_THRESHOLD;
+  // Keep nameplates at a consistent on-screen size.
+  const nameplateScale = scaled > 0 ? 1 / scaled : 1;
+  const nameplateOffset = scaled > 0 ? NAMEPLATE_OFFSET_PX / scaled : NAMEPLATE_OFFSET_PX;
+  const nameplates = useMemo<Nameplate[]>(() => {
+    if (!galaxy || !showNameplates) return [];
+    return galaxy.stars.reduce<Nameplate[]>((acc, star, idx) => {
+      const name = star.name?.trim();
+      if (!name) return acc;
+      acc.push({
+        id: idx,
+        name,
+        x: star.x,
+        y: star.y,
+      });
+      return acc;
+    }, []);
+  }, [galaxy, showNameplates]);
 
   useEffect(() => {
     if (!galaxy) return;
@@ -137,18 +181,20 @@ export function GalaxyViewport({
     if (viewMode === "galaxy") {
       if (viewModeChanged) {
         // Only reposition when view mode changes
-        const startX = (size.width - galaxyBounds.width * baseScale) / 2 - galaxyBounds.minX * baseScale;
-        const startY = (size.height - galaxyBounds.height * baseScale) / 2 - galaxyBounds.minY * baseScale;
+        const nextZoom = previousViewMode === "system" ? galaxyZoomRef.current : 1;
+        zoomRef.current = nextZoom;
+        const nextScaled = baseScale * nextZoom;
+        const startX = (size.width - galaxyBounds.width * nextScaled) / 2 - galaxyBounds.minX * nextScaled;
+        const startY = (size.height - galaxyBounds.height * nextScaled) / 2 - galaxyBounds.minY * nextScaled;
         setOffset({ x: startX, y: startY });
+        sizeRef.current = { width: size.width, height: size.height };
+        hasCenteredRef.current = true;
         
-        if (previousViewMode === "system") {
-          // Switching back from system view, restore saved galaxy zoom
-          setZoom(galaxyZoomRef.current);
-        } else {
-          // First time entering galaxy view, start with zoom 1
-          setZoom(1);
+        if (previousViewMode !== "system") {
           galaxyZoomRef.current = 1;
         }
+        // Switching back from system view, restore saved galaxy zoom.
+        setZoom(nextZoom);
       }
       // If viewMode didn't change, don't touch offset or zoom
     } else if (viewMode === "system" && selectedStar !== undefined) {
@@ -168,17 +214,15 @@ export function GalaxyViewport({
   // Reposition when window size changes
   useEffect(() => {
     if (!galaxy || viewMode !== "galaxy") return;
-    const startX = (size.width - galaxyBounds.width * baseScale) / 2 - galaxyBounds.minX * baseScale;
-    const startY = (size.height - galaxyBounds.height * baseScale) / 2 - galaxyBounds.minY * baseScale;
+    const sizeChanged = sizeRef.current.width !== size.width || sizeRef.current.height !== size.height;
+    if (!sizeChanged && hasCenteredRef.current) return;
+    const currentScaled = baseScale * zoomRef.current;
+    const startX = (size.width - galaxyBounds.width * currentScaled) / 2 - galaxyBounds.minX * currentScaled;
+    const startY = (size.height - galaxyBounds.height * currentScaled) / 2 - galaxyBounds.minY * currentScaled;
     setOffset({ x: startX, y: startY });
+    sizeRef.current = { width: size.width, height: size.height };
+    hasCenteredRef.current = true;
   }, [galaxyBounds, baseScale, size.width, size.height, viewMode, galaxy]);
-
-  useEffect(() => {
-    if (!galaxy || viewMode !== "galaxy") return;
-    const startX = (size.width - galaxyBounds.width * scaled) / 2 - galaxyBounds.minX * scaled;
-    const startY = (size.height - galaxyBounds.height * scaled) / 2 - galaxyBounds.minY * scaled;
-    setOffset({ x: startX, y: startY });
-  }, [galaxy, scaled, size.height, size.width, viewMode]);
 
   const voronoiPolys = useMemo(() => {
     if (!galaxy || galaxy.stars.length === 0) return [];
@@ -559,6 +603,27 @@ export function GalaxyViewport({
               }
             }}
           />
+          {showNameplates && viewMode === "galaxy" && nameplates.length > 0 && (
+            <Container>
+              {nameplates.map((plate) => {
+                return (
+                  <Container
+                    key={`nameplate-${plate.id}`}
+                    position={[plate.x, plate.y + nameplateOffset]}
+                    scale={nameplateScale}
+                  >
+                    <Text
+                      text={plate.name}
+                      anchor={[0.5, 0]}
+                      x={0}
+                      y={0}
+                      style={NAMEPLATE_STYLE}
+                    />
+                  </Container>
+                );
+              })}
+            </Container>
+          )}
         </Container>
       </Stage>
     </div>
