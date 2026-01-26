@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Bystoria",
+    "color": [
+      52,
+      121,
+      235
+    ],
+    "sectors": [
+      {
+        "name": "Bystor",
+        "color": [
+          255,
+          255,
+          255
+        ],
+        "provinces": [
+          {
+            "name": "Byso",
+            "color": [
+              255,
+              255,
+              255
+            ],
+            "clusters": []
+          }
+        ]
+      },
+      {
+        "name": "Sect1",
+        "color": [
+          255,
+          0,
+          0
+        ],
+        "provinces": []
+      },
+      {
+        "name": "Sect2",
+        "color": [
+          0,
+          255,
+          255
+        ],
+        "provinces": []
+      }
+    ]
+  },
+  {
+    "name": "Alma Ruma",
+    "color": [
+      195,
+      126,
+      46
+    ],
+    "sectors": []
+  }
+]

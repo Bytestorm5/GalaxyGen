@@ -125,3 +125,7 @@ resource_legend.png
 /apps/api/api_venv
 /apps/web/.next
 /apps/web/node_modules
+node_modules/
+apps/web/.next/
+apps/web/out/
+/apps/api/api_venv
