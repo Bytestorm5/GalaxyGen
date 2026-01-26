@@ -14,9 +14,7 @@ import type {
   ViewMode,
 } from "../lib/types";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
 
 export default function Home() {
   const [galaxy, setGalaxy] = useState<Galaxy | undefined>();
