@@ -15,6 +15,12 @@ class GenerateRequest(BaseModel):
     use_resources: bool = True
 
 
+class GenerateSystemRequest(BaseModel):
+    galaxy: Galaxy
+    star_index: int = Field(..., ge=0)
+    seed: Optional[int] = None
+
+
 class RenderRequest(BaseModel):
     galaxy_path: Optional[Path] = None
     output_dir: Optional[Path] = None

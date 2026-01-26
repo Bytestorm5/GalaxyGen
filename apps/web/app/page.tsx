@@ -122,7 +122,7 @@ export default function Home() {
     setContextMenu({x: clientX, y: clientY, type, id});
   }, []);
 
-  const handleGalaxyClick = useCallback((type: 'empty' | 'star' | 'lane', shiftKey: boolean, id?: number, position?: {x: number, y: number}) => {
+  const handleGalaxyClick = useCallback(async (type: 'empty' | 'star' | 'lane', shiftKey: boolean, id?: number, position?: {x: number, y: number}) => {
     if (addingHyperlane && type === 'star' && id !== undefined && hyperlaneFrom !== null && id !== hyperlaneFrom) {
       // add hyperlane
       if (!galaxy) return;
@@ -153,20 +153,84 @@ export default function Home() {
       // add star
       if (!galaxy || !position) return;
       const oldGalaxy = galaxy;
-      const x = Math.max(0, Math.min(galaxy.width, Math.round(position.x)));
-      const y = Math.max(0, Math.min(galaxy.height, Math.round(position.y)));
-      const newStar = {
+      const x = Math.round(position.x);
+      const y = Math.round(position.y);
+      
+      // Check if we need to expand galaxy bounds
+      const buffer = 100;
+      let newWidth = galaxy.width;
+      let newHeight = galaxy.height;
+      
+      if (x < 0) {
+        newWidth = Math.max(newWidth, galaxy.width - x + buffer);
+      } else if (x >= galaxy.width) {
+        newWidth = Math.max(newWidth, x + buffer);
+      }
+      
+      if (y < 0) {
+        newHeight = Math.max(newHeight, galaxy.height - y + buffer);
+      } else if (y >= galaxy.height) {
+        newHeight = Math.max(newHeight, y + buffer);
+      }
+      
+      // Create temporary star for generation
+      const tempStar = {
         x,
         y,
-        name: `Star ${galaxy.stars.length}`,
+        name: "",
         description: "",
         star_type: "G" as const,
         admin_levels: [null, null, null, null],
         bodies: []
       };
-      const newGalaxy = { ...galaxy, stars: [...galaxy.stars, newStar] };
-      setGalaxy(newGalaxy);
-      saveGalaxy(newGalaxy, oldGalaxy);
+      const tempGalaxy = { ...galaxy, width: newWidth, height: newHeight, stars: [...galaxy.stars, tempStar] };
+      
+      try {
+        // Generate system profile
+        const res = await fetch(`${API_BASE}/galaxy/generate-system`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ galaxy: tempGalaxy, star_index: galaxy.stars.length }),
+        });
+        if (!res.ok) throw new Error('Failed to generate system');
+        const profile = await res.json();
+        
+        // Create star with generated properties
+        const newStar: Star = {
+          x,
+          y,
+          name: `Star ${galaxy.stars.length + 1}`,
+          description: `A ${profile.classification} type star`,
+          star_type: profile.classification,
+          admin_levels: [null, null, null, null],
+          bodies: profile.bodies.map((body: any, idx: number) => ({
+            name: `Body ${idx + 1}`,
+            type: body.type,
+            distance_au: body.dist_au,
+            angle_deg: 0.0,
+            radius_km: 1000.0, // placeholder
+          }))
+        };
+        
+        const newGalaxy = { ...galaxy, width: newWidth, height: newHeight, stars: [...galaxy.stars, newStar] };
+        setGalaxy(newGalaxy);
+        saveGalaxy(newGalaxy, oldGalaxy);
+      } catch (err) {
+        console.error('Failed to generate system:', err);
+        // Fallback to basic star creation
+        const newStar = {
+          x,
+          y,
+          name: `Star ${galaxy.stars.length + 1}`,
+          description: "",
+          star_type: "G" as const,
+          admin_levels: [null, null, null, null],
+          bodies: []
+        };
+        const newGalaxy = { ...galaxy, width: newWidth, height: newHeight, stars: [...galaxy.stars, newStar] };
+        setGalaxy(newGalaxy);
+        saveGalaxy(newGalaxy, oldGalaxy);
+      }
     } else {
       // select
       if (type === 'star' || type === 'lane') {

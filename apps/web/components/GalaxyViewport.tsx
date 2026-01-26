@@ -69,6 +69,8 @@ export function GalaxyViewport({
   adminFocus = [],
 }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const prevViewModeRef = useRef<ViewMode>(viewMode);
+  const galaxyZoomRef = useRef<number>(1);
   const [size, setSize] = useState({ width: 1200, height: 720 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -88,21 +90,73 @@ export function GalaxyViewport({
     return () => window.removeEventListener("resize", syncSize);
   }, []);
 
+  const galaxyBounds = useMemo(() => {
+    if (!galaxy || galaxy.stars.length === 0) {
+      return { minX: 0, maxX: galaxy?.width || 800, minY: 0, maxY: galaxy?.height || 800, width: galaxy?.width || 800, height: galaxy?.height || 800 };
+    }
+    
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    galaxy.stars.forEach(star => {
+      minX = Math.min(minX, star.x);
+      maxX = Math.max(maxX, star.x);
+      minY = Math.min(minY, star.y);
+      maxY = Math.max(maxY, star.y);
+    });
+    
+    // Add buffer for display
+    const buffer = 50;
+    const displayMinX = minX - buffer;
+    const displayMaxX = maxX + buffer;
+    const displayMinY = minY - buffer;
+    const displayMaxY = maxY + buffer;
+    
+    return {
+      minX: displayMinX,
+      maxX: displayMaxX,
+      minY: displayMinY,
+      maxY: displayMaxY,
+      width: displayMaxX - displayMinX,
+      height: displayMaxY - displayMinY
+    };
+  }, [galaxy]);
+
   const baseScale = useMemo(() => {
     if (!galaxy) return 1;
-    return Math.min(size.width / galaxy.width, size.height / galaxy.height);
-  }, [galaxy, size.height, size.width]);
+    return Math.min(size.width / galaxyBounds.width, size.height / galaxyBounds.height);
+  }, [galaxy, galaxyBounds, size.height, size.width]);
 
   const scaled = baseScale * zoom;
 
   useEffect(() => {
     if (!galaxy) return;
+    
+    const viewModeChanged = prevViewModeRef.current !== viewMode;
+    const previousViewMode = prevViewModeRef.current;
+    prevViewModeRef.current = viewMode;
+    
     if (viewMode === "galaxy") {
-      const startX = (size.width - galaxy.width * baseScale) / 2;
-      const startY = (size.height - galaxy.height * baseScale) / 2;
-      setOffset({ x: startX, y: startY });
-      setZoom(1);
+      if (viewModeChanged) {
+        // Only reposition when view mode changes
+        const startX = (size.width - galaxyBounds.width * baseScale) / 2 - galaxyBounds.minX * baseScale;
+        const startY = (size.height - galaxyBounds.height * baseScale) / 2 - galaxyBounds.minY * baseScale;
+        setOffset({ x: startX, y: startY });
+        
+        if (previousViewMode === "system") {
+          // Switching back from system view, restore saved galaxy zoom
+          setZoom(galaxyZoomRef.current);
+        } else {
+          // First time entering galaxy view, start with zoom 1
+          setZoom(1);
+          galaxyZoomRef.current = 1;
+        }
+      }
+      // If viewMode didn't change, don't touch offset or zoom
     } else if (viewMode === "system" && selectedStar !== undefined) {
+      // Save current galaxy zoom before switching to system
+      if (viewModeChanged && previousViewMode === "galaxy") {
+        galaxyZoomRef.current = zoom;
+      }
+      
       const star = galaxy.stars[selectedStar];
       const maxDist = star && star.bodies.length > 0 ? Math.max(...star.bodies.map(b => b.distance_au)) : 1;
       const requiredZoom = (Math.min(size.width, size.height) / 2) / (maxDist * 10);
@@ -111,10 +165,18 @@ export function GalaxyViewport({
     }
   }, [galaxy, baseScale, size.height, size.width, viewMode, selectedStar]);
 
+  // Reposition when window size changes
   useEffect(() => {
     if (!galaxy || viewMode !== "galaxy") return;
-    const startX = (size.width - galaxy.width * scaled) / 2;
-    const startY = (size.height - galaxy.height * scaled) / 2;
+    const startX = (size.width - galaxyBounds.width * baseScale) / 2 - galaxyBounds.minX * baseScale;
+    const startY = (size.height - galaxyBounds.height * baseScale) / 2 - galaxyBounds.minY * baseScale;
+    setOffset({ x: startX, y: startY });
+  }, [galaxyBounds, baseScale, size.width, size.height, viewMode, galaxy]);
+
+  useEffect(() => {
+    if (!galaxy || viewMode !== "galaxy") return;
+    const startX = (size.width - galaxyBounds.width * scaled) / 2 - galaxyBounds.minX * scaled;
+    const startY = (size.height - galaxyBounds.height * scaled) / 2 - galaxyBounds.minY * scaled;
     setOffset({ x: startX, y: startY });
   }, [galaxy, scaled, size.height, size.width, viewMode]);
 
@@ -122,7 +184,24 @@ export function GalaxyViewport({
     if (!galaxy || galaxy.stars.length === 0) return [];
     const points = galaxy.stars.map((s) => [s.x, s.y]);
     const delaunay = Delaunay.from(points as any);
-    const voronoi = delaunay.voronoi([0, 0, galaxy.width, galaxy.height]);
+    
+    // Calculate bounds based on star positions with buffer
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    galaxy.stars.forEach(star => {
+      minX = Math.min(minX, star.x);
+      maxX = Math.max(maxX, star.x);
+      minY = Math.min(minY, star.y);
+      maxY = Math.max(maxY, star.y);
+    });
+    
+    // Add buffer around the star bounds
+    const buffer = 100;
+    const voronoiMinX = minX - buffer;
+    const voronoiMaxX = maxX + buffer;
+    const voronoiMinY = minY - buffer;
+    const voronoiMaxY = maxY + buffer;
+    
+    const voronoi = delaunay.voronoi([voronoiMinX, voronoiMinY, voronoiMaxX, voronoiMaxY]);
     const polys: (number[][] | undefined)[] = [];
     for (let i = 0; i < points.length; i++) {
       const cell = voronoi.cellPolygon(i);

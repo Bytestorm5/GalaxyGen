@@ -9,6 +9,7 @@ from PIL import Image
 from scipy.spatial import Delaunay
 
 from .models import Galaxy, Hyperlane, ResourceDefinition, Star, CelestialBody, PlanetType
+from .random_names import generate_random_word
 from .resources import assign_resources
 from .storage import load_country_definitions
 from .system_generation import generate_system_profile, StarType
@@ -159,11 +160,11 @@ def generate_galaxy(
         profile = generate_system_profile(galaxy, idx, rng_seed or 0)
         if profile:
             star.star_type = StarType(profile['classification'])
-            star.name = f"Star {idx + 1}"
+            star.name = generate_random_word()
             star.description = f"A {profile['classification']} type star"
             star.bodies = [
                 CelestialBody(
-                    name=f"Body {body['order'] + 1}",
+                    name=generate_random_word(),
                     type=PlanetType(body['type']),
                     distance_au=body['dist_au'],
                     angle_deg=0.0,  # placeholder

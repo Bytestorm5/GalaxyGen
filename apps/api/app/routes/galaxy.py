@@ -11,9 +11,10 @@ from galaxygen.storage import (
     save_country_definitions,
     save_galaxy,
 )
+from galaxygen.system_generation import generate_system_profile
 
 from ..dependencies import get_settings
-from ..schemas.galaxy import GalaxyResponse, GenerateRequest, RenderRequest, SaveGalaxyRequest
+from ..schemas.galaxy import GalaxyResponse, GenerateRequest, GenerateSystemRequest, RenderRequest, SaveGalaxyRequest
 
 router = APIRouter(prefix="/galaxy", tags=["galaxy"])
 
@@ -50,6 +51,14 @@ def generate(payload: GenerateRequest, settings=Depends(get_settings)):
     save_galaxy(settings.galaxy_file, galaxy)
     country_defs = load_country_definitions(settings.countries_file) if settings.countries_file.exists() else []
     return {"galaxy": galaxy, "resources": resources, "countries": country_defs}
+
+
+@router.post("/generate-system")
+def generate_system(payload: GenerateSystemRequest, settings=Depends(get_settings)):
+    profile = generate_system_profile(payload.galaxy, payload.star_index, payload.seed or 0)
+    if profile is None:
+        raise HTTPException(status_code=400, detail=f"Invalid star index {payload.star_index} or coordinates")
+    return profile
 
 
 @router.post("/render")
