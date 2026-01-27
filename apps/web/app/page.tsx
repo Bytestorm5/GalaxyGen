@@ -1084,7 +1084,7 @@ export default function Home() {
         {viewMode === "system" && (
           <button onClick={() => setViewMode("galaxy")}>Back to Galaxy</button>
         )}
-        <button onClick={refreshGalaxy} disabled={loading}>
+        <button onClick={() => refreshGalaxy()} disabled={loading}>
           {loading ? "Loading..." : "Refresh Galaxy"}
         </button>
         <div className="status">{status}</div>
