@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
-from galaxygen.models import CountryDefinition, Galaxy, ResourceDefinition
+from galaxygen.models import CountryDefinition, Galaxy, ResourceDefinition, Star
 
 
 class GenerateRequest(BaseModel):
@@ -29,6 +29,25 @@ class RenderRequest(BaseModel):
 class SaveGalaxyRequest(BaseModel):
     galaxy: Galaxy
     countries: list[CountryDefinition] | None = None
+
+
+class UpdateStarRequest(BaseModel):
+    star: Star
+
+
+class AddStarRequest(BaseModel):
+    star: Star
+    width: int = Field(..., ge=0)
+    height: int = Field(..., ge=0)
+
+
+class HyperlaneRequest(BaseModel):
+    a: int = Field(..., ge=0)
+    b: int = Field(..., ge=0)
+
+
+class UpdateCountriesRequest(BaseModel):
+    countries: list[CountryDefinition]
 
 
 class GalaxyResponse(BaseModel):

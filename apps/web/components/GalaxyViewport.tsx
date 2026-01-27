@@ -98,6 +98,7 @@ export function GalaxyViewport({
 }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prevViewModeRef = useRef<ViewMode>(viewMode);
+  const prevSelectedStarRef = useRef<number | undefined>(selectedStar);
   const galaxyZoomRef = useRef<number>(1);
   const zoomRef = useRef<number>(1);
   const sizeRef = useRef({ width: 0, height: 0 });
@@ -215,11 +216,13 @@ export function GalaxyViewport({
 
   useEffect(() => {
     if (!galaxy) return;
-    
-    const viewModeChanged = prevViewModeRef.current !== viewMode;
+
     const previousViewMode = prevViewModeRef.current;
+    const viewModeChanged = previousViewMode !== viewMode;
+    const selectedStarChanged = prevSelectedStarRef.current !== selectedStar;
     prevViewModeRef.current = viewMode;
-    
+    prevSelectedStarRef.current = selectedStar;
+
     if (viewMode === "galaxy") {
       if (viewModeChanged) {
         // Only reposition when view mode changes
@@ -244,12 +247,14 @@ export function GalaxyViewport({
       if (viewModeChanged && previousViewMode === "galaxy") {
         galaxyZoomRef.current = zoom;
       }
-      
-      const star = galaxy.stars[selectedStar];
-      const maxDist = star && star.bodies.length > 0 ? Math.max(...star.bodies.map(b => b.distance_au)) : 1;
-      const requiredZoom = (Math.min(size.width, size.height) / 2) / (maxDist * 10);
-      setOffset({ x: 0, y: 0 });
-      setZoom(clamp(requiredZoom, 0.1, 1));
+
+      if (viewModeChanged || selectedStarChanged) {
+        const star = galaxy.stars[selectedStar];
+        const maxDist = star && star.bodies.length > 0 ? Math.max(...star.bodies.map(b => b.distance_au)) : 1;
+        const requiredZoom = (Math.min(size.width, size.height) / 2) / (maxDist * 10);
+        setOffset({ x: 0, y: 0 });
+        setZoom(clamp(requiredZoom, 0.1, 1));
+      }
     }
   }, [galaxy, baseScale, size.height, size.width, viewMode, selectedStar]);
 
