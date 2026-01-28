@@ -317,6 +317,68 @@ export default function Home() {
     }
   }, []);
 
+  const updateStarMetaOnServer = useCallback(async (starId: number, fields: Partial<Star>) => {
+    try {
+      await fetch(`${API_BASE}/galaxy/star/${starId}/meta`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to save star metadata.");
+    }
+  }, []);
+
+  const addBodyOnServer = useCallback(async (starId: number, body: CelestialBody, oldGalaxy?: Galaxy) => {
+    try {
+      const res = await fetch(`${API_BASE}/galaxy/star/${starId}/body`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok && oldGalaxy) {
+        setGalaxy(oldGalaxy);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to add body.");
+      if (oldGalaxy) setGalaxy(oldGalaxy);
+    }
+  }, []);
+
+  const updateBodyOnServer = useCallback(async (starId: number, bodyIdx: number, body: CelestialBody, oldGalaxy?: Galaxy) => {
+    try {
+      const res = await fetch(`${API_BASE}/galaxy/star/${starId}/body/${bodyIdx}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok && oldGalaxy) {
+        setGalaxy(oldGalaxy);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to update body.");
+      if (oldGalaxy) setGalaxy(oldGalaxy);
+    }
+  }, []);
+
+  const deleteBodyOnServer = useCallback(async (starId: number, bodyIdx: number, oldGalaxy?: Galaxy) => {
+    try {
+      const res = await fetch(`${API_BASE}/galaxy/star/${starId}/body/${bodyIdx}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok && oldGalaxy) {
+        setGalaxy(oldGalaxy);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to delete body.");
+      if (oldGalaxy) setGalaxy(oldGalaxy);
+    }
+  }, []);
+
   const updateStarOnServer = useCallback(async (starId: number, star: Star, oldGalaxy?: Galaxy) => {
     setLoading(true);
     try {
@@ -853,6 +915,30 @@ export default function Home() {
     saveCountries(newDefs);
   }, [countryDefs, saveCountries]);
 
+  const updateCountryProfileEntryLocal = useCallback((
+    countryIndex: number,
+    timelineIndex: number,
+    updates: CountryProfileData & { year?: number }
+  ) => {
+    const newDefs = [...countryDefs];
+    const country = newDefs[countryIndex];
+    if (!country) return;
+    const events = Array.isArray(country.timeline?.events) ? [...country.timeline.events] : [];
+    const existing = events[timelineIndex];
+    if (!existing) return;
+    const { year, ...dataUpdates } = updates;
+    const nextEvent = {
+      ...existing,
+      data: { ...(existing.data || {}), ...dataUpdates },
+    };
+    if (typeof year === "number") {
+      nextEvent.year = clampNumber(year, TIMELINE_MIN_YEAR, TIMELINE_MAX_YEAR);
+    }
+    events[timelineIndex] = nextEvent;
+    newDefs[countryIndex] = { ...country, timeline: { events } };
+    setCountryDefs(newDefs);
+  }, [countryDefs]);
+
   const addCountryProfileEventBetween = useCallback((
     countryIndex: number,
     _prevYear?: number,
@@ -889,10 +975,18 @@ export default function Home() {
       radius_km: 1000,
     };
     const newBodies = [...editedStar.bodies, newBody];
+    if (galaxy && selectedStar != null) {
+      const oldGalaxy = galaxy;
+      const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+      newGalaxy.stars[selectedStar] = { ...editedStar, bodies: newBodies };
+      setGalaxy(newGalaxy);
+      addBodyOnServer(selectedStar, newBody, oldGalaxy);
+    }
+    suppressAutosaveRef.current = true;
     setEditedStar({ ...editedStar, bodies: newBodies });
     setSelection({ type: "body", starId: selectedStar, bodyIdx: newBodies.length - 1 });
     setNewBodyName("");
-  }, [editedStar, selectedStar, newBodyName, newBodyType]);
+  }, [editedStar, selectedStar, newBodyName, newBodyType, galaxy, addBodyOnServer]);
 
   const handleSelect = useCallback((sel: Selection) => {
     setSelection(sel);
@@ -1352,6 +1446,24 @@ export default function Home() {
                   <input
                     type="color"
                     value={rgbToHex(div.color)}
+                    onInput={(e) => {
+                        const newColor = hexToRgb(e.currentTarget.value);
+                        const newDefs = [...countryDefs];
+                        if (adminFocus.length === 0) {
+                          newDefs[div.index] = upsertCountryProfileEvent(
+                            newDefs[div.index],
+                            timelineYear,
+                            { color: newColor }
+                          );
+                        } else if (adminFocus.length === 1) {
+                          newDefs[adminFocus[0] as number].sectors[div.index].color = newColor;
+                        } else if (adminFocus.length === 2) {
+                          newDefs[adminFocus[0] as number].sectors[adminFocus[1] as number].provinces[div.index].color = newColor;
+                        } else if (adminFocus.length === 3) {
+                          newDefs[adminFocus[0] as number].sectors[adminFocus[1] as number].provinces[adminFocus[2] as number].clusters[div.index].color = newColor;
+                        }
+                        setCountryDefs(newDefs);
+                      }}
                       onChange={(e) => {
                         const newColor = hexToRgb(e.target.value);
                         const newDefs = [...countryDefs];
@@ -1478,6 +1590,11 @@ export default function Home() {
                     <input
                       type="color"
                       value={rgbToHex(colorValue)}
+                      onInput={(e) => {
+                        if (activeCountryTimeline == null) return;
+                        const nextColor = hexToRgb(e.currentTarget.value);
+                        updateCountryProfileEntryLocal(activeCountryTimeline, entry.timelineIndex, { color: nextColor });
+                      }}
                       onChange={(e) => {
                         if (activeCountryTimeline == null) return;
                         const nextColor = hexToRgb(e.target.value);
@@ -1526,11 +1643,48 @@ export default function Home() {
               <h3>Body Editor</h3>
               <button onClick={() => setSelection({type: "star", id: selectedStar!})}>Back to Star</button>
               <br/><label>
-                Name: <input type="text" value={editedBody.name} onChange={(e) => setEditedBody({...editedBody, name: e.target.value})} />
+                Name: <input
+                  type="text"
+                  value={editedBody.name}
+                  onChange={(e) => {
+                    const nextBody = { ...editedBody, name: e.target.value };
+                    setEditedBody(nextBody);
+                    if (selectedStar == null || !editedStar) return;
+                    const updatedBodies = [...editedStar.bodies];
+                    updatedBodies[(selection as any).bodyIdx] = nextBody;
+                    suppressAutosaveRef.current = true;
+                    setEditedStar({ ...editedStar, bodies: updatedBodies });
+                    if (galaxy) {
+                      const oldGalaxy = galaxy;
+                      const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                      newGalaxy.stars[selectedStar] = { ...editedStar, bodies: updatedBodies };
+                      setGalaxy(newGalaxy);
+                      updateBodyOnServer(selectedStar, (selection as any).bodyIdx, nextBody, oldGalaxy);
+                    }
+                  }}
+                />
               </label>
               <br/><label>
                 Type: 
-                <select value={editedBody.type} onChange={(e) => setEditedBody({...editedBody, type: e.target.value})}>
+                <select
+                  value={editedBody.type}
+                  onChange={(e) => {
+                    const nextBody = { ...editedBody, type: e.target.value };
+                    setEditedBody(nextBody);
+                    if (selectedStar == null || !editedStar) return;
+                    const updatedBodies = [...editedStar.bodies];
+                    updatedBodies[(selection as any).bodyIdx] = nextBody;
+                    suppressAutosaveRef.current = true;
+                    setEditedStar({ ...editedStar, bodies: updatedBodies });
+                    if (galaxy) {
+                      const oldGalaxy = galaxy;
+                      const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                      newGalaxy.stars[selectedStar] = { ...editedStar, bodies: updatedBodies };
+                      setGalaxy(newGalaxy);
+                      updateBodyOnServer(selectedStar, (selection as any).bodyIdx, nextBody, oldGalaxy);
+                    }
+                  }}
+                >
                   <option value="terrestrial">Terrestrial</option>
                   <option value="gas_giant">Gas Giant</option>
                   <option value="ice_giant">Ice Giant</option>
@@ -1539,16 +1693,21 @@ export default function Home() {
               </label>
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 <button onClick={() => {
-                  const newBodies = [...editedStar.bodies];
-                  newBodies[(selection as any).bodyIdx] = editedBody;
-                  setEditedStar({...editedStar, bodies: newBodies});
                   setSelection({type: "star", id: selectedStar!});
-                }}>Save</button>
+                }}>Done</button>
                 <button onClick={() => {
                   if (!editedStar || selection?.type !== "body") return;
                   if (!confirm(`Delete ${editedBody.name}?`)) return;
+                  const oldGalaxy = galaxy;
                   const newBodies = editedStar.bodies.filter((_, idx) => idx !== selection.bodyIdx);
+                  suppressAutosaveRef.current = true;
                   setEditedStar({ ...editedStar, bodies: newBodies });
+                  if (galaxy && selectedStar != null) {
+                    const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                    newGalaxy.stars[selectedStar] = { ...editedStar, bodies: newBodies };
+                    setGalaxy(newGalaxy);
+                    deleteBodyOnServer(selectedStar, selection.bodyIdx, oldGalaxy);
+                  }
                   setEditedBody(undefined);
                   setSelection({ type: "star", id: selectedStar! });
                 }}>Delete</button>
@@ -1558,11 +1717,42 @@ export default function Home() {
             <>
               <h3>Star Editor</h3>
               <br/><label>
-                Name: <input type="text" value={editedStar.name} onChange={(e) => setEditedStar({...editedStar, name: e.target.value})} />
+                Name: <input
+                  type="text"
+                  value={editedStar.name}
+                  onChange={(e) => {
+                    const nextName = e.target.value;
+                    suppressAutosaveRef.current = true;
+                    setEditedStar({ ...editedStar, name: nextName });
+                    if (selectedStar != null) {
+                      updateStarMetaOnServer(selectedStar, { name: nextName });
+                      if (galaxy) {
+                        const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                        newGalaxy.stars[selectedStar] = { ...editedStar, name: nextName };
+                        setGalaxy(newGalaxy);
+                      }
+                    }
+                  }}
+                />
               </label>
               <br/><label>
                 Type: 
-                <select value={editedStar.star_type} onChange={(e) => setEditedStar({...editedStar, star_type: e.target.value})}>
+                <select
+                  value={editedStar.star_type}
+                  onChange={(e) => {
+                    const nextType = e.target.value;
+                    suppressAutosaveRef.current = true;
+                    setEditedStar({ ...editedStar, star_type: nextType });
+                    if (selectedStar != null) {
+                      updateStarMetaOnServer(selectedStar, { star_type: nextType });
+                      if (galaxy) {
+                        const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                        newGalaxy.stars[selectedStar] = { ...editedStar, star_type: nextType };
+                        setGalaxy(newGalaxy);
+                      }
+                    }
+                  }}
+                >
                   <option value="O">O</option>
                   <option value="B">B</option>
                   <option value="A">A</option>
@@ -1573,7 +1763,22 @@ export default function Home() {
                 </select>
               </label>
               <br/><label>
-                Description: <br/><textarea value={editedStar.description} onChange={(e) => setEditedStar({...editedStar, description: e.target.value})} />
+                Description: <br/><textarea
+                  value={editedStar.description}
+                  onChange={(e) => {
+                    const nextDescription = e.target.value;
+                    suppressAutosaveRef.current = true;
+                    setEditedStar({ ...editedStar, description: nextDescription });
+                    if (selectedStar != null) {
+                      updateStarMetaOnServer(selectedStar, { description: nextDescription });
+                      if (galaxy) {
+                        const newGalaxy = { ...galaxy, stars: [...galaxy.stars] };
+                        newGalaxy.stars[selectedStar] = { ...editedStar, description: nextDescription };
+                        setGalaxy(newGalaxy);
+                      }
+                    }
+                  }}
+                />
               </label>
                 <h4>Admin Levels</h4>
                 <datalist id="countries">
@@ -1711,6 +1916,13 @@ export default function Home() {
                       <input 
                         type="color" 
                         value={rgbToHex(country.color)} 
+                        onInput={(e) => {
+                          if (countryIdx != null) {
+                            const newDefs = [...countryDefs];
+                            newDefs[countryIdx].color = hexToRgb(e.currentTarget.value);
+                            setCountryDefs(newDefs);
+                          }
+                        }}
                         onChange={(e) => {
                           if (countryIdx != null) {
                             const newDefs = [...countryDefs];

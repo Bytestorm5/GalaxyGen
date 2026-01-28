@@ -23,6 +23,8 @@ dependencies = [
 dev = [
     "pytest>=7.4",
     "fastapi>=0.110",
+    "mongomock>=4.1",
+    "requests>=2.31",
 ]
 
 [project.scripts]

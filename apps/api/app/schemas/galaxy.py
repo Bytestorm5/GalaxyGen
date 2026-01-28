@@ -5,7 +5,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from galaxygen.models import CountryDefinition, Galaxy, ResourceDefinition, Star
+from galaxygen.models import CelestialBody, CountryDefinition, Galaxy, ResourceDefinition, Star
 
 
 class GenerateRequest(BaseModel):
@@ -33,6 +33,16 @@ class SaveGalaxyRequest(BaseModel):
 
 class UpdateStarRequest(BaseModel):
     star: Star
+
+
+class UpdateStarMetaRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    star_type: str | None = None
+
+
+class UpdateBodyRequest(BaseModel):
+    body: CelestialBody
 
 
 class AddStarRequest(BaseModel):

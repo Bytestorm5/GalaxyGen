@@ -5,7 +5,15 @@ from typing import Iterable, List
 from pymongo import ReturnDocument
 
 from .db import get_database
-from .models import CountryDefinition, Galaxy, Hyperlane, ResourceDefinition, ResourceRegion, Star
+from .models import (
+    CelestialBody,
+    CountryDefinition,
+    Galaxy,
+    Hyperlane,
+    ResourceDefinition,
+    ResourceRegion,
+    Star,
+)
 
 _META_ID = "galaxy"
 
@@ -138,15 +146,14 @@ def load_country_definitions(path=None) -> List[CountryDefinition]:
 
 def save_country_definitions(path, countries: Iterable[CountryDefinition]) -> None:
     db = get_database()
-    db["countries"].delete_many({})
     country_list = list(countries)
-    if country_list:
-        db["countries"].insert_many(
-            [
-                {**country.model_dump(), "idx": idx}
-                for idx, country in enumerate(country_list)
-            ]
+    for idx, country in enumerate(country_list):
+        db["countries"].replace_one(
+            {"idx": idx},
+            {**country.model_dump(), "idx": idx},
+            upsert=True,
         )
+    db["countries"].delete_many({"idx": {"$gte": len(country_list)}})
     db["galaxy_meta"].update_one(
         {"_id": _META_ID},
         {"$set": {"country_count": len(country_list)}},
@@ -169,14 +176,53 @@ def update_star(idx: int, star: Star) -> bool:
     return result.matched_count > 0
 
 
+def update_star_fields(idx: int, fields: dict) -> bool:
+    if not fields:
+        return False
+    db = get_database()
+    result = db["stars"].update_one({"idx": idx}, {"$set": fields})
+    return result.matched_count > 0
+
+
+def get_star(idx: int) -> Star | None:
+    db = get_database()
+    doc = db["stars"].find_one({"idx": idx})
+    if not doc:
+        return None
+    return Star(**_strip_doc(doc))
+
+
+def add_body(star_idx: int, body: CelestialBody) -> int | None:
+    star = get_star(star_idx)
+    if not star:
+        return None
+    star.bodies.append(body)
+    update_star(star_idx, star)
+    return len(star.bodies) - 1
+
+
+def update_body(star_idx: int, body_idx: int, body: CelestialBody) -> bool:
+    star = get_star(star_idx)
+    if not star or body_idx < 0 or body_idx >= len(star.bodies):
+        return False
+    star.bodies[body_idx] = body
+    return update_star(star_idx, star)
+
+
+def delete_body(star_idx: int, body_idx: int) -> bool:
+    star = get_star(star_idx)
+    if not star or body_idx < 0 or body_idx >= len(star.bodies):
+        return False
+    star.bodies = [b for idx, b in enumerate(star.bodies) if idx != body_idx]
+    return update_star(star_idx, star)
+
+
 def add_star(star: Star, width: int, height: int) -> int:
     db = get_database()
     meta = db["galaxy_meta"].find_one_and_update(
         {"_id": _META_ID},
         {
             "$setOnInsert": {
-                "width": 0,
-                "height": 0,
                 "hyperlane_count": 0,
                 "resource_count": 0,
                 "country_count": 0,

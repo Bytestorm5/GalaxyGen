@@ -6,8 +6,10 @@ from galaxygen.generation import generate_galaxy
 from galaxygen.random_names import generate_random_word
 from galaxygen.rendering import render_galaxy
 from galaxygen.storage import (
+    add_body as add_body_to_store,
     add_hyperlane as add_hyperlane_to_store,
     add_star as add_star_to_store,
+    delete_body as delete_body_from_store,
     delete_hyperlane as delete_hyperlane_from_store,
     delete_star as delete_star_from_store,
     get_star_count,
@@ -16,7 +18,9 @@ from galaxygen.storage import (
     load_resource_definitions,
     save_country_definitions,
     save_galaxy,
+    update_body as update_body_in_store,
     update_star as update_star_in_store,
+    update_star_fields as update_star_fields_in_store,
 )
 from galaxygen.system_generation import generate_system_profile
 
@@ -29,7 +33,9 @@ from ..schemas.galaxy import (
     HyperlaneRequest,
     RenderRequest,
     SaveGalaxyRequest,
+    UpdateBodyRequest,
     UpdateCountriesRequest,
+    UpdateStarMetaRequest,
     UpdateStarRequest,
 )
 
@@ -90,6 +96,36 @@ def update_star(star_idx: int, payload: UpdateStarRequest, settings=Depends(get_
     if star_idx < 0 or not update_star_in_store(star_idx, payload.star):
         raise HTTPException(status_code=404, detail=f"Star {star_idx} not found")
     return {"star": payload.star}
+
+
+@router.patch("/star/{star_idx}/meta")
+def update_star_meta(star_idx: int, payload: UpdateStarMetaRequest, settings=Depends(get_settings)):
+    fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if star_idx < 0 or not update_star_fields_in_store(star_idx, fields):
+        raise HTTPException(status_code=404, detail=f"Star {star_idx} not found")
+    return {"ok": True}
+
+
+@router.post("/star/{star_idx}/body")
+def add_body(star_idx: int, payload: UpdateBodyRequest, settings=Depends(get_settings)):
+    idx = add_body_to_store(star_idx, payload.body)
+    if idx is None:
+        raise HTTPException(status_code=404, detail=f"Star {star_idx} not found")
+    return {"index": idx}
+
+
+@router.patch("/star/{star_idx}/body/{body_idx}")
+def update_body(star_idx: int, body_idx: int, payload: UpdateBodyRequest, settings=Depends(get_settings)):
+    if not update_body_in_store(star_idx, body_idx, payload.body):
+        raise HTTPException(status_code=404, detail=f"Body {body_idx} on star {star_idx} not found")
+    return {"ok": True}
+
+
+@router.delete("/star/{star_idx}/body/{body_idx}")
+def delete_body(star_idx: int, body_idx: int, settings=Depends(get_settings)):
+    if not delete_body_from_store(star_idx, body_idx):
+        raise HTTPException(status_code=404, detail=f"Body {body_idx} on star {star_idx} not found")
+    return {"ok": True}
 
 
 @router.post("/star")
