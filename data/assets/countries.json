@@ -85,14 +85,14 @@
           }
         },
         {
-          "year": 2216,
+          "year": 2076,
           "type": "country_profile",
           "data": {
             "name": "Galactic Empire of Alma Ruma",
             "color": [
-              195,
-              126,
-              46
+              115,
+              7,
+              233
             ]
           }
         }

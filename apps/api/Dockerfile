@@ -6,10 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/repo
 
+COPY galaxygen galaxygen
+COPY pyproject.toml pyproject.toml
+COPY README.md README.md
 COPY apps/api/requirements.txt apps/api/requirements.txt
 RUN pip install --no-cache-dir -r apps/api/requirements.txt
-
-COPY galaxygen galaxygen
 COPY apps/api/app apps/api/app
 COPY data data
 

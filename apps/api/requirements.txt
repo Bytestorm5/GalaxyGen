@@ -4,7 +4,7 @@ anyio==4.11.0
 click==8.3.1
 colorama==0.4.6
 fastapi==0.121.3
--e git+https://github.com/Bytestorm5/GalaxyGen.git@23dfdd8e0dbcf8e7de64f0624587ba3ec9b71520#egg=galaxygen
+-e ../..
 h11==0.16.0
 httptools==0.7.1
 idna==3.11
