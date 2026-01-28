@@ -7,6 +7,16 @@ export interface CelestialBody {
   color?: [number, number, number];
 }
 
+export interface TimelineEvent {
+  year: number;
+  type: string;
+  data?: Record<string, unknown>;
+}
+
+export interface Timeline {
+  events: TimelineEvent[];
+}
+
 export interface Star {
   x: number;
   y: number;
@@ -15,6 +25,7 @@ export interface Star {
   star_type: string;
   admin_levels: (number | null)[];
   bodies: CelestialBody[];
+  timeline: Timeline;
 }
 
 export interface Hyperlane {
@@ -55,6 +66,7 @@ export interface CountryDefinition {
   name: string;
   color: [number, number, number];
   sectors: SectorDefinition[];
+  timeline: Timeline;
 }
 
 export interface Galaxy {

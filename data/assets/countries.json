@@ -44,7 +44,23 @@
         ],
         "provinces": []
       }
-    ]
+    ],
+    "timeline": {
+      "events": [
+        {
+          "year": 2000,
+          "type": "country_profile",
+          "data": {
+            "name": "Bystoria",
+            "color": [
+              52,
+              121,
+              235
+            ]
+          }
+        }
+      ]
+    }
   },
   {
     "name": "Alma Ruma",
@@ -53,6 +69,59 @@
       126,
       46
     ],
-    "sectors": []
+    "sectors": [],
+    "timeline": {
+      "events": [
+        {
+          "year": 2000,
+          "type": "country_profile",
+          "data": {
+            "name": "Alma Ruma",
+            "color": [
+              195,
+              126,
+              46
+            ]
+          }
+        },
+        {
+          "year": 2216,
+          "type": "country_profile",
+          "data": {
+            "name": "Galactic Empire of Alma Ruma",
+            "color": [
+              195,
+              126,
+              46
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Dtalovia",
+    "color": [
+      88,
+      64,
+      210
+    ],
+    "sectors": [],
+    "timeline": {
+      "events": [
+        {
+          "year": 2000,
+          "type": "country_profile",
+          "data": {
+            "name": "Dtalovia",
+            "color": [
+              88,
+              64,
+              210
+            ]
+          }
+        }
+      ]
+    }
   }
 ]

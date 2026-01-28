@@ -155,7 +155,7 @@ button:hover {
   position: absolute;
   top: 0;
   bottom: 72px;
-  width: 320px;
+  width: 360px;
   padding: 16px;
   background: linear-gradient(180deg, rgba(15, 20, 30, 0.96), rgba(10, 12, 18, 0.94));
   border: 1px solid rgba(158, 252, 255, 0.1);

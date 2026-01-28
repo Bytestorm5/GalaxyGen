@@ -16,6 +16,8 @@ from .models import (
     ResourceDefinition,
     ResourceRegion,
     Star,
+    Timeline,
+    TimelineEvent,
 )
 from .rendering import render_galaxy
 from .resources import assign_resources
@@ -43,6 +45,8 @@ __all__ = [
     "ResourceDefinition",
     "ResourceRegion",
     "Star",
+    "Timeline",
+    "TimelineEvent",
     "render_galaxy",
     "assign_resources",
     "generate_system_profile",

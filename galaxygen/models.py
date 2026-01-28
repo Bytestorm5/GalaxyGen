@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from math import log1p
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field, validator
 
@@ -20,6 +20,28 @@ class CelestialBody(BaseModel):
     color: Tuple[int, int, int] | None = None
 
 
+class TimelineEvent(BaseModel):
+    year: int
+    type: str
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+
+class Timeline(BaseModel):
+    events: List[TimelineEvent] = Field(default_factory=list)
+
+
+def default_system_timeline() -> Timeline:
+    return Timeline(
+        events=[
+            TimelineEvent(
+                year=0,
+                type="admin_divisions",
+                data={"admin_levels": [None, None, None, None]},
+            )
+        ]
+    )
+
+
 class Star(BaseModel):
     x: int
     y: int
@@ -28,6 +50,7 @@ class Star(BaseModel):
     star_type: StarType = StarType.G
     admin_levels: List[Optional[int]] = Field(default_factory=lambda: [None, None, None, None])  # country ids for levels 0-3
     bodies: List[CelestialBody] = Field(default_factory=list)
+    timeline: Timeline = Field(default_factory=default_system_timeline)
 
     def as_tuple(self) -> Coordinate:
         return (self.x, self.y)
@@ -80,6 +103,7 @@ class CountryDefinition(BaseModel):
     name: str
     color: Tuple[int, int, int]
     sectors: List[SectorDefinition] = Field(default_factory=list)
+    timeline: Timeline = Field(default_factory=Timeline)
 
 
 class Galaxy(BaseModel):

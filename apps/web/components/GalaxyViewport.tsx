@@ -31,6 +31,7 @@ type Props = {
   galaxySelection?: {type: 'star' | 'lane', id: number} | null;
   selectedAdminForPaint?: number | null;
   adminFocus?: (number | null)[];
+  adminLevelsByStar?: (number | null)[][];
 };
 
 type Nameplate = {
@@ -95,6 +96,7 @@ export function GalaxyViewport({
   galaxySelection,
   selectedAdminForPaint,
   adminFocus = [],
+  adminLevelsByStar,
 }: Props) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prevViewModeRef = useRef<ViewMode>(viewMode);
@@ -213,6 +215,26 @@ export function GalaxyViewport({
       return acc;
     }, []);
   }, [galaxy, selectedStar, showBodyNameplates]);
+  const focusActive = editMode === "political" && adminFocus.length > 0;
+  const getStarAdminLevels = useCallback(
+    (idx: number, star: { admin_levels: (number | null)[] }) =>
+      adminLevelsByStar?.[idx] ?? star.admin_levels,
+    [adminLevelsByStar]
+  );
+  const isStarInFocus = useCallback(
+    (idx: number, star: { admin_levels: (number | null)[] }) => {
+      if (!focusActive) return true;
+      const levels = getStarAdminLevels(idx, star);
+      for (let i = 0; i < adminFocus.length; i++) {
+        const focusId = adminFocus[i];
+        if (focusId == null || levels[i] !== focusId) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [adminFocus, focusActive, getStarAdminLevels]
+  );
 
   useEffect(() => {
     if (!galaxy) return;
@@ -363,8 +385,14 @@ export function GalaxyViewport({
         }
       }
     }
+    if (type === 'star' && focusActive && id !== undefined) {
+      const star = galaxy.stars[id];
+      if (star && !isStarInFocus(id, star)) {
+        return;
+      }
+    }
     onContextMenu?.(type, event.clientX, event.clientY, id);
-  }, [galaxy, viewMode, toWorld, onContextMenu]);
+  }, [galaxy, viewMode, toWorld, onContextMenu, focusActive, isStarInFocus]);
 
   const handleGalaxyClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!galaxy || viewMode !== "galaxy") return;
@@ -396,8 +424,14 @@ export function GalaxyViewport({
         }
       }
     }
+    if (type === 'star' && focusActive && id !== undefined) {
+      const star = galaxy.stars[id];
+      if (star && !isStarInFocus(id, star)) {
+        return;
+      }
+    }
     onGalaxyClick?.(type, event.shiftKey, id, type === 'empty' ? worldPos : undefined);
-  }, [galaxy, viewMode, toWorld, onGalaxyClick, downPos]);
+  }, [galaxy, viewMode, toWorld, onGalaxyClick, downPos, focusActive, isStarInFocus]);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (viewMode === "galaxy") {
@@ -435,6 +469,9 @@ export function GalaxyViewport({
         const star = galaxy.stars[i];
         const dist = Math.hypot(world.x - star.x, world.y - star.y);
         if (dist <= tolerance) {
+          if (focusActive && !isStarInFocus(i, star)) {
+            return;
+          }
           found = { type: "star", id: i };
           break;
         }
@@ -558,31 +595,38 @@ export function GalaxyViewport({
                 });
 
                 galaxy.stars.forEach((star, idx) => {
-                  const isSelected = galaxySelection?.type === "star" && galaxySelection.id === idx;
-                  const isHighlighted = addingHyperlane || (editMode === "political" && selectedAdminForPaint != null && star.admin_levels[adminFocus.length] !== selectedAdminForPaint);
+                  const levels = getStarAdminLevels(idx, star);
+                  const inFocus = !focusActive || isStarInFocus(idx, star);
+                  const isSelected = inFocus && galaxySelection?.type === "star" && galaxySelection.id === idx;
+                  const isHighlighted =
+                    addingHyperlane ||
+                    (editMode === "political" &&
+                      selectedAdminForPaint != null &&
+                      inFocus &&
+                      levels[adminFocus.length] !== selectedAdminForPaint);
                   let fillColor = 0xeeeeee;
-                  if (editMode === "political") {
+                  if (editMode === "political" && inFocus) {
                     const level = adminFocus.length;
-                    const divId = star.admin_levels[level];
+                    const divId = levels[level];
                     if (divId !== null && divId !== undefined) {
                       let color: [number, number, number] | undefined;
                       if (level === 0) {
                         color = countryDefs[divId]?.color;
                       } else if (level === 1) {
-                        const countryId = star.admin_levels[0];
+                        const countryId = levels[0];
                         if (countryId !== null) {
                           color = countryDefs[countryId]?.sectors[divId]?.color;
                         }
                       } else if (level === 2) {
-                        const countryId = star.admin_levels[0];
-                        const sectorId = star.admin_levels[1];
+                        const countryId = levels[0];
+                        const sectorId = levels[1];
                         if (countryId !== null && sectorId !== null) {
                           color = countryDefs[countryId]?.sectors[sectorId]?.provinces[divId]?.color;
                         }
                       } else if (level === 3) {
-                        const countryId = star.admin_levels[0];
-                        const sectorId = star.admin_levels[1];
-                        const provinceId = star.admin_levels[2];
+                        const countryId = levels[0];
+                        const sectorId = levels[1];
+                        const provinceId = levels[2];
                         if (countryId !== null && sectorId !== null && provinceId !== null) {
                           color = countryDefs[countryId]?.sectors[sectorId]?.provinces[provinceId]?.clusters[divId]?.color;
                         }
@@ -591,9 +635,13 @@ export function GalaxyViewport({
                         fillColor = rgbTupleToHex(color);
                       }
                     }
+                  } else if (editMode === "political" && !inFocus) {
+                    fillColor = 0x4a4a4a;
                   }
-                  g.beginFill(fillColor, isSelected ? 1 : 0.9);
-                  g.lineStyle(isSelected ? 0.45 : 0, isHighlighted ? 0xffff00 : 0xeeeeee, isSelected ? 0.9 : (isHighlighted ? 0.8 : 0));
+                  const fillAlpha = focusActive && !inFocus ? 0.35 : (isSelected ? 1 : 0.9);
+                  const outlineAlpha = focusActive && !inFocus ? 0 : (isSelected ? 0.9 : (isHighlighted ? 0.8 : 0));
+                  g.beginFill(fillColor, fillAlpha);
+                  g.lineStyle(isSelected ? 0.45 : 0, isHighlighted ? 0xffff00 : 0xeeeeee, outlineAlpha);
                   g.drawCircle(star.x, star.y, isSelected ? 2.8 : 2.2);
                   g.endFill();
                 });
@@ -605,29 +653,34 @@ export function GalaxyViewport({
                   voronoiPolys.forEach((poly, idx) => {
                     if (!poly) return;
                     const star = galaxy.stars[idx];
+                    const levels = getStarAdminLevels(idx, star);
+                    const inFocus = !focusActive || isStarInFocus(idx, star);
                     const level = adminFocus.length;
-                    const divId = star.admin_levels[level];
+                    const divId = levels[level];
                     let color = 0x333333; // default gray
                     let alpha = 0.1;
-                    if (divId !== null && divId !== undefined) {
+                    if (focusActive && !inFocus) {
+                      color = 0x2b2b2b;
+                      alpha = 0.18;
+                    } else if (divId !== null && divId !== undefined) {
                       let col: [number, number, number] | undefined;
                       if (level === 0) {
                         col = countryDefs[divId]?.color;
                       } else if (level === 1) {
-                        const countryId = star.admin_levels[0];
+                        const countryId = levels[0];
                         if (countryId !== null) {
                           col = countryDefs[countryId]?.sectors[divId]?.color;
                         }
                       } else if (level === 2) {
-                        const countryId = star.admin_levels[0];
-                        const sectorId = star.admin_levels[1];
+                        const countryId = levels[0];
+                        const sectorId = levels[1];
                         if (countryId !== null && sectorId !== null) {
                           col = countryDefs[countryId]?.sectors[sectorId]?.provinces[divId]?.color;
                         }
                       } else if (level === 3) {
-                        const countryId = star.admin_levels[0];
-                        const sectorId = star.admin_levels[1];
-                        const provinceId = star.admin_levels[2];
+                        const countryId = levels[0];
+                        const sectorId = levels[1];
+                        const provinceId = levels[2];
                         if (countryId !== null && sectorId !== null && provinceId !== null) {
                           col = countryDefs[countryId]?.sectors[sectorId]?.provinces[provinceId]?.clusters[divId]?.color;
                         }

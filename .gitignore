@@ -129,3 +129,4 @@ node_modules/
 apps/web/.next/
 apps/web/out/
 /apps/api/api_venv
+*.lock
