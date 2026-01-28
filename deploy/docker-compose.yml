@@ -5,8 +5,13 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/galaxygen}
+      MONGO_DB: ${MONGO_DB:-galaxygen}
     expose:
       - "8000"
+    depends_on:
+      - mongo
     restart: unless-stopped
 
   web:
@@ -35,9 +40,17 @@ services:
       - caddy_config:/config
     depends_on:
       - api
+      - mongo
       - web
     restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
 
 volumes:
   caddy_data:
   caddy_config:
+  mongo_data:

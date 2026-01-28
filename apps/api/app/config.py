@@ -1,21 +1,16 @@
 from pathlib import Path
+
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from galaxygen.config import (
-    DEFAULT_COUNTRIES,
-    DEFAULT_DISTRIBUTION,
-    DEFAULT_GALAXY,
-    DEFAULT_RESOURCES,
-)
+from galaxygen.config import DEFAULT_DISTRIBUTION
 
 
 class Settings(BaseSettings):
-    data_dir: Path = Path(__file__).resolve().parents[3] / "data"
-    galaxy_file: Path = DEFAULT_GALAXY
+    mongo_uri: str = Field(..., validation_alias="MONGO_URI")
+    mongo_db: str = Field("galaxygen", validation_alias="MONGO_DB")
     distribution_map: Path = DEFAULT_DISTRIBUTION
-    resources_file: Path = DEFAULT_RESOURCES
-    countries_file: Path = DEFAULT_COUNTRIES
-    render_output: Path = DEFAULT_GALAXY.parent
+    render_output: Path = Path(__file__).resolve().parents[3] / "build" / "renders"
 
     class Config:
         env_prefix = "ASARTO_"

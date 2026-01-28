@@ -12,7 +12,7 @@ COPY README.md README.md
 COPY apps/api/requirements.txt apps/api/requirements.txt
 RUN pip install --no-cache-dir -r apps/api/requirements.txt
 COPY apps/api/app apps/api/app
-COPY data data
+COPY data/assets data/assets
 
 WORKDIR /repo/apps/api
 

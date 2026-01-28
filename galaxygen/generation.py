@@ -2,16 +2,23 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import List, Optional
 
 import numpy as np
 from PIL import Image
 from scipy.spatial import Delaunay
 
-from .models import Galaxy, Hyperlane, ResourceDefinition, Star, CelestialBody, PlanetType
+from .models import (
+    CelestialBody,
+    CountryDefinition,
+    Galaxy,
+    Hyperlane,
+    PlanetType,
+    ResourceDefinition,
+    Star,
+)
 from .random_names import generate_random_word
 from .resources import assign_resources
-from .storage import load_country_definitions
 from .system_generation import generate_system_profile, StarType
 
 
@@ -130,7 +137,7 @@ def generate_galaxy(
     system_count: int,
     resources: Optional[List[ResourceDefinition]] = None,
     rng_seed: Optional[int] = None,
-    countries_path: Optional[Path] = None,
+    countries: Optional[List[CountryDefinition]] = None,
     min_midpoint_density: float = 0.05,
 ) -> Galaxy:
     rng = random.Random(rng_seed)
@@ -145,15 +152,9 @@ def generate_galaxy(
         height=image.size[1],
         stars=stars,
         hyperlanes=hyperlanes,
-        ownership=[],
         resources=[],
-        countries=[],
+        countries=countries or [],
     )
-
-    if countries_path is None:
-        countries_path = Path("data/assets/countries.json")
-    if countries_path.exists():
-        galaxy.countries = load_country_definitions(countries_path)
 
     # Generate star details
     for idx, star in enumerate(galaxy.stars):

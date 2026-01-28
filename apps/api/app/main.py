@@ -32,4 +32,4 @@ app.include_router(galaxy.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "data_dir": str(settings.data_dir)}
+    return {"status": "ok", "database": settings.mongo_db}
